@@ -6,3 +6,5 @@ export * from './inventario';
 export * from './ventas';
 export * from './finanzas';
 export * from './idempotency';
+
+export * from './operacion';

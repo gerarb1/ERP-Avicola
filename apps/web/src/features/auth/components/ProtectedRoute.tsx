@@ -1,5 +1,5 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuthStore } from '../auth-store';
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuthStore } from "../auth-store";
 
 interface Props {
   allowedRoles?: string[];
@@ -12,7 +12,7 @@ export function ProtectedRoute({ allowedRoles }: Props) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+  if (allowedRoles && (!userRole || !allowedRoles.includes(userRole))) {
     return <Navigate to="/" replace />;
   }
 

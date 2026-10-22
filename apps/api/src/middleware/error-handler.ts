@@ -30,6 +30,5 @@ export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
   return c.json({
     success: false,
     error: 'Internal Server Error',
-    message: err.message,
   }, 500);
 };

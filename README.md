@@ -10,6 +10,8 @@
 
 Sistema integral de gestión de recursos empresariales (**ERP**) y módulo de analítica predictiva/inteligencia de negocios (**BI**) diseñado específicamente para la operación agroindustrial de postura comercial en **"Alta La Estancia"**.
 
+> La operación autenticada, cuentas de prueba, reglas Hy-Line, migración del MVP y validaciones de esta rama están en [Operación y puesta en marcha](docs/OPERACION.md).
+
 ---
 
 ## 🌐 Enlaces de Producción en Vivo

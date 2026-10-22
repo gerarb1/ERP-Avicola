@@ -4,8 +4,7 @@ import * as schema from './schema';
 import { TALLAS_HUEVO } from '@erp-avicola/shared';
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  connectionString: process.env.DATABASE_URL
 });
 
 const db = drizzle(pool, { schema });

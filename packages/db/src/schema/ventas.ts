@@ -34,6 +34,7 @@ export const notasRemision = pgTable('notas_remision', {
   numeroNota: serial('numero_nota').unique().notNull(),
   clienteId: uuid('cliente_id').references(() => clientes.id).notNull(),
   fecha: date('fecha').notNull(),
+  destino: varchar('destino', { length: 250 }),
   tipoPago: tipoPagoEnum('tipo_pago').notNull(),
   subtotal: numeric('subtotal', { precision: 12, scale: 2 }).notNull().default('0'),
   descuento: numeric('descuento', { precision: 12, scale: 2 }).notNull().default('0'),

@@ -14,7 +14,9 @@ export const databaseMiddleware = createMiddleware<AppEnv>(async (c, next) => {
 
   c.set('db', db);
 
-  await next();
-
-  c.executionCtx.waitUntil(client.end());
+  try {
+    await next();
+  } finally {
+    c.executionCtx.waitUntil(client.end());
+  }
 });
