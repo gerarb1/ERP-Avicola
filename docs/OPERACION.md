@@ -1,98 +1,119 @@
-# Operación avícola: alcance y puesta en marcha
+# Operación y preparación para producción
 
-Rama: `feat/operacion-avicola-hyline`. No se modifica ni despliega la rama principal durante este trabajo.
+Rama de trabajo: `feat/operacion-avicola-hyline`. Los cambios de código y las migraciones se preparan aquí; el despliegue y la base pública no se modifican automáticamente.
 
-## Diagnóstico previo
+## Recolección simple y consumos estimados
 
-El MVP tenía acceso simulado (cualquier contraseña y rol inferido del correo), indicadores y notificaciones estáticos, formularios que modificaban estado local y hooks vacíos. Las rutas de producción e inventario validaban campos distintos de los consumidos por sus servicios; se validaban tallas como UUID aunque son códigos. La venta no descontaba todos los huevos sueltos, no registraba abonos y trataba de guardar la categoría inexistente VENTAS en caja. La disponibilidad podía perder actualizaciones concurrentes. El arqueo asumía saldo inicial cero.
+En Galpones y postura solo se exigen lote, fecha, huevos sanos y huevos rotos. Las observaciones son opcionales. Ya no se pide medir alimento ni agua a diario, ni elegir un alimento para poder guardar huevos.
 
-Se sustituyeron las cinco pantallas operativas y su navegación por formularios conectados a una API autenticada. Se conservaron las tablas y unidades de negocio existentes, agregando los campos y registros que faltaban. Las antiguas rutas del MVP ya no se montan; los clientes deben actualizar la web junto con la API. Se retiraron los HTML públicos de demostración. Los archivos antiguos no montados se mantienen como referencia y no forman parte del flujo operativo.
+- La edad confirmada determina el rango semanal Hy-Line. La ración orientativa usa el punto medio del rango en g/ave/día, o la ración manual acordada por administración para ese lote. El punto medio es una estimación del sistema, no un valor medido ni una dieta prescrita por la guía.
+- Se guarda una estimación de alimento y agua para cada recolección, usando el censo de esa fecha. Si no se confirmó la edad y no hay ración acordada, no se inventa una cantidad. El agua de referencia depende de la edad confirmada y no se presenta como consumo real.
+- Las estimaciones no descuentan existencias físicas. Al entregar alimento, almacén registra las bolsas que realmente salieron; el peso de bolsa es configurable (44 kg por defecto). Así no es necesario pesar consumo diariamente ni descontarlo dos veces.
+- La API conserva la posibilidad de recibir kg y litros medidos para integraciones o mediciones puntuales. Esos campos quedan NULL si no se midieron. Los promedios y variaciones de consumo medido no se calculan rellenando datos faltantes con cero.
+- Administración puede confirmar la edad y ajustar o quitar la ración manual en Configuración de granja. La edad se expresa para la fecha de inicio del registro indicada en pantalla. Las estimaciones ya guardadas se conservan como historial.
 
-## Funciones y perfiles
+La postura incluye todos los huevos recolectados y usa aves vivas de los días registrados. Los rotos de recolección no entran al almacén. Una baja actualiza el censo y los registros afectados; se rechazan inconsistencias y cantidades superiores a las aves vivas.
+
+## Selectores, inventario y remisiones
+
+Las pantallas de administración y de los encargados usan los mismos formularios operativos. Un selector sin recolecciones pendientes o sin remisiones impagas no es una lista de usuarios/roles: depende de los registros reales disponibles. Ahora explica qué registro previo falta y bloquea el formulario mientras no haya opciones, en vez de mostrar solo «Seleccionar…». Los errores de carga se muestran por separado.
+
+Clasificar permite ingresar **cajas completas por talla + maples adicionales + huevos sueltos**: una caja son 12 maples y un maple 30 huevos. El servidor convierte a unidades, valida contra la recolección sana pendiente y evita clasificarla más de una vez. La API sigue aceptando unidades para clientes anteriores, pero no permite combinar ambos modos en una misma solicitud.
+
+Para los huevos que ya existían al comenzar se ofrece **Stock inicial contado**, solo para administración. No necesita una recolección histórica ficticia. Se permite antes del primer movimiento de cada talla y deja un ajuste identificable. No reemplaza saldos con movimientos existentes. Los insumos iniciales se registran como entradas reales, con motivo y cantidades contadas.
+
+Las remisiones conservan cliente, destino, cajas/maples/sueltos, precio por maple en Bs, abonos y estado de pago. El precio se introduce explícitamente; no se presupone Bs 30. El selector de abonos solo ofrece remisiones que todavía deben dinero. Despacho, stock, deuda del cliente y cobro se guardan en una transacción; nunca se permite pagar más que el saldo. Los cobros se tratan actualmente como efectivo en caja.
+
+## Perfiles y cuentas reales
 
 | Función | Administración | Galpón | Almacén |
 | --- | --- | --- | --- |
-| Recolección, bajas, agua, consumo, bitácora | Sí | Sí | No |
-| Clasificar recolección, registrar merma, despachar | Sí | No | Sí |
-| Compras de insumos, existencias, precios de bolsa | Sí | Consulta de alimento | Sí |
+| Recolección, bajas, sucesos, referencias por edad | Sí | Sí | No |
+| Clasificación, merma, despacho, insumos | Sí | No | Sí |
+| Consultar alimento disponible | Sí | Sí | Sí |
 | Clientes, remisiones y abonos | Sí | No | Sí |
-| Anotar gastos y ver sus propios movimientos | Sí | Sí | Sí |
-| Ver toda la caja, reposiciones y arqueos | Sí | No | No |
-| Análisis por edad | Sí | Referencia en su pantalla | Cobertura en su pantalla |
-| Resumen semanal y seguimientos | Sí | Sí | Resumen y cobertura |
+| Anotar gastos propios | Sí | Sí | Sí |
+| Caja completa, reposiciones, informes y arqueos | Sí | No | No |
+| Configurar granja, edad y ración | Sí | No | No |
+| Crear/restablecer/desactivar cuentas | Sí | No | No |
+| Cambiar contraseña y guardar código de recuperación | Sí | Sí | Sí |
 
-Los permisos se comprueban en el servidor. Los encabezados X-User-Role y X-User-Id ya no conceden acceso. Las sesiones duran ocho horas, usan tokens aleatorios almacenados como hash en PostgreSQL y se revocan al salir; las contraseñas usan PBKDF2-SHA256 con sal única y 100000 iteraciones compatibles con Workers. Diez intentos fallidos bloquean temporalmente el correo durante 15 minutos. El navegador no conserva cachés operativas entre cuentas. Los tres perfiles son cuentas reales en la base donde se ejecuta el script, no accesos incrustados en el frontend.
+En **Cuentas y acceso**, administración crea usuarios con nombre, correo y uno de los tres perfiles. El sistema genera una contraseña temporal que se muestra una vez y debe entregarse en privado. La persona cambia esa contraseña en el primer ingreso antes de poder registrar operaciones. Se puede restablecer una contraseña o desactivar/reactivar una cuenta. No se permite desactivar la propia cuenta ni dejar la granja sin un administrador activo.
 
-## Reglas operativas
+En **Mi cuenta** cada usuario cambia su contraseña y obtiene un código de recuperación de un solo uso. Debe guardarlo fuera de la aplicación. El enlace **Olvidé mi contraseña** permite restablecerla usando ese código; no se necesita un servidor de correo. Si un encargado pierde el código, administración puede emitir una nueva contraseña temporal. El administrador debe conservar su código de respaldo. No se implementa envío automático por correo/WhatsApp.
 
-- **Galpón:** una recolección por lote y día, separando huevos sanos y rotos. El consumo descuenta kg del alimento seleccionado. Las bajas disminuyen el censo; si se registran para una fecha anterior, ajustan los censos diarios afectados y se rechazan inconsistencias. El censo del día usa las aves al cierre después de bajas, con la misma convención para numerador y denominador. Los sucesos guardan producto, aplicación/dosis anotada y próxima fecha de seguimiento: vacunas, vitaminas, despique, cambio de alimento y observaciones.
-- **Almacén:** solo clasifica huevos sanos pendientes de una recolección. La clasificación no se duplica. Las mermas y despachos descuentan unidades físicas normalizadas: 30 huevos por maple, 12 maples por caja. Los rotos de recolección no se descuentan otra vez del almacén.
-- **Insumos:** control en kg para alimento, con peso configurable por bolsa (44 kg por defecto). Registra compras, costo total, proveedor/motivo, vencimiento, consumo y merma. El precio por bolsa se deriva de cada compra; no se supone un precio fijo. El stock es agregado por producto; el vencimiento se consulta en el historial de compras, sin asignación automática de lotes de compra/FIFO. La cobertura es una estimación de la granja, no una garantía de que cada fase de alimento tenga existencias suficientes.
-- **Remisiones:** cliente, destino y detalle de cajas/maples/huevos sueltos, precio por maple en Bs y cobro proporcional de sueltos. Estado pendiente, parcial o pagado según pagos efectivamente registrados. Venta, stock, historial, saldo del cliente y cobro se guardan en una transacción. Los pagos no pueden superar la deuda. Todos los cobros actuales se registran como efectivo en caja; no se implementaron transferencias ni cuentas bancarias.
-- **Caja:** importes en centavos para cálculo y dos decimales en almacenamiento/presentación, siempre Bs. Las compras solo generan gasto si el actor marca que se pagaron desde caja; evita duplicarlo manualmente. Informes por fechas, con vista predeterminada de la última semana completa y descarga CSV con responsables. Son constancias internas: no facturas ni asientos contables.
-- **Arqueo:** lunes a domingo finalizado, saldo inicial calculado desde movimientos anteriores, ingresos/gastos, efectivo contado y diferencia. Una diferencia requiere explicación y queda visible. No ajusta dinero de forma oculta. No permite volver a cerrar un período ni anotar movimientos de caja anteriores al último cierre; las correcciones se registran en un período abierto.
-- **Reintentos:** las escrituras operativas exigen una clave UUID, conservan la respuesta en PostgreSQL y verifican usuario, ruta y contenido. La interfaz reutiliza la clave al reintentar el mismo formulario tras un fallo de red. Las transacciones serializan cambios de stock, censo, caja y cierre. No se encolan movimientos nuevos sin conexión: se requiere confirmación del servidor.
+Restablecer o cambiar contraseña revoca todas las sesiones y anula el código anterior. La recuperación con código lo consume y requiere generar otro después de ingresar. Las contraseñas se almacenan con PBKDF2-SHA256, sal única y 100000 iteraciones compatibles con Workers; los tokens de sesión y códigos se almacenan como hash. Las respuestas con contraseñas/códigos no se guardan en la tabla de reintentos. Los intentos fallidos de login y recuperación se limitan por correo durante 15 minutos. Los roles se verifican en el servidor; los encabezados X-User-Role/X-User-Id no conceden acceso.
 
-## Guía Hy-Line aplicada
+## Base nueva sin datos ficticios
 
-Fuente: PDF adjunto «Guía de rendimiento, ponedoras comerciales, sistemas convencionales», Hy-Line Brown, **diciembre de 2025**. SHA-256 del archivo recibido: `3319c0efbcb5753291a33312af04f3cf75d89ac130934a1b28b719ffa6f5ab4d`.
+El seed de producción ahora crea **solo catálogos**: tallas, stock vacío por talla y las capacidades de Galpón 1 (1500) y Galpón 2 (2500). No activa lotes ni genera edades, producción, precios, saldos o usuarios de demostración. Ejecutarlo otra vez no sustituye datos existentes. La capacidad de un galpón no es su censo de aves.
 
-Se transcribieron las 100 filas de las tablas de crianza y producción, pp. 4–6, en `packages/shared/src/domain/hyline.ts`: rangos de postura %, agua ml/ave/día y alimento g/ave/día. No se interpola ni se extrapola fuera de 1–100 semanas. En crianza no se inventa un rango de postura. Por ejemplo, semana 20: 52.5–55%; semana 26: 93.6–98.5%; semana 100: 70.8–77.6%. Se calcula la edad completando semanas desde la fecha y edad de ingreso del lote, para la fecha de cada registro.
-
-Postura semanal = huevos totales de días registrados / suma de aves vivas de esos días × 100. Consumos por ave usan el mismo denominador. La curva compara el rango de la edad de **cada fecha**, no un 92% fijo. Censo, agua y postura sin mediciones históricas se muestran como no disponibles. Los días sin registro no se convierten en ceros. La variación semanal solo se anuncia si ambas semanas tienen siete días; el agua incompleta no se estima.
-
-Las pp. 13–18 indican que la fase alimentaria también depende de producción, tamaño del huevo y peso, no solo de edad. Por eso se registra el alimento aplicado y se muestran referencias, sin cambiar automáticamente la dieta. Los rangos no son garantías y dependen del ambiente y del sistema de alojamiento. No se prescribe medicación, vacunas, dosis, despique ni calendarios sanitarios que la guía no establece para este lote. No se presenta kg/maple como si fuera conversión kg de alimento/kg de huevo, ni márgenes ficticios.
-
-Las notificaciones **dentro de la aplicación** se renuevan por semana completa en horario de Bolivia (lunes–domingo), comparan postura y alimento, muestran agua/bajas y alertan cobertura baja y seguimientos vencidos. Se consultan al entrar y cada minuto con la app abierta; la lectura se guarda por usuario. No son correo, WhatsApp ni push con la app cerrada.
-
-## Preparar una base nueva de desarrollo
-
-Node 24 en este entorno, pnpm 9.15.0 y PostgreSQL. Desde la raíz:
+Desde la raíz, con Node 24 en cloud y pnpm 9.15:
 
 ```bash
 pnpm install --frozen-lockfile
-# DATABASE_URL debe apuntar a una base local de desarrollo.
+# DATABASE_URL debe apuntar a la base de desarrollo elegida.
 pnpm --filter @erp-avicola/db db:push
 pnpm --filter @erp-avicola/db db:seed
-DEMO_CREDENTIALS_FILE=/ruta/privada/cuentas.txt pnpm --filter @erp-avicola/db exec tsx scripts/crear-cuentas-demo.mts
 ```
 
-El seed existente es solo para una base nueva: no repetir sobre datos reales. Ya no desactiva la verificación TLS; PostgreSQL local puede usar explícitamente `sslmode=disable` en una conexión de loopback. Configurar `packages/db/.env` local o inyectar DATABASE_URL. El archivo privado de credenciales debe ser nuevo, fuera del repositorio; se crea con permisos 0600 y no se imprimen contraseñas en los logs.
+Para producción, usar las migraciones SQL revisadas y no db:push. La conexión debe conservar la verificación TLS cuando la base la requiera; solo loopback local puede usar explícitamente sslmode=disable. El script db:seed existente lee packages/db/.env o la variable DATABASE_URL inyectada.
 
-Cuentas: `admin@altalaestancia.com`, `galpon@altalaestancia.com`, `almacen@altalaestancia.com`. El script no reemplaza usuarios ni contraseñas existentes; si alguno ya existe, indica que no lo cambió. Verificar que el usuario existente tenga credencial antes de usarlo como cuenta de demostración. Las cuentas creadas durante este trabajo están únicamente en la base local; sus credenciales están en `/workspace/.setup/cuentas-demo.txt`.
-
-Arrancar la API y la web en terminales separadas:
+Crear **el primer administrador real** requiere acceso de operación a la base, una vez. No hay un registro público que permita convertirse en administrador:
 
 ```bash
-pnpm --filter @erp-avicola/api dev --ip 127.0.0.1
-VITE_API_URL=http://127.0.0.1:8787 pnpm --filter @erp-avicola/web dev --host 127.0.0.1
+# DATABASE_URL ya debe estar configurada en el entorno seguro.
+ADMIN_EMAIL='tu-correo-real@tu-dominio.com' \
+ADMIN_NOMBRE='Tu nombre' \
+ADMIN_CREDENTIALS_FILE='/ruta/privada/admin-inicial.txt' \
+pnpm --filter @erp-avicola/db exec tsx scripts/bootstrap-admin.mts
 ```
 
-VITE_API_URL admite el origen de la API con o sin `/api`; no se duplica el prefijo. El binding Hyperdrive local debe apuntar a esa misma base (Wrangler requiere usuario y contraseña en la URI, incluso con trust local). En el entorno cloud están instalados los binarios y datos bajo `/workspace/.setup/pg`; activar `/workspace/.setup/bin` para pnpm y arrancar PostgreSQL según la configuración guardada del entorno.
+El archivo debe ser nuevo y quedar fuera del repositorio; se crea con permisos 0600, con contraseña temporal y código de respaldo. No se imprimen valores en los logs. El script rechaza crear otro administrador inicial si ya hay uno activo. Si existe un administrador sin credencial propia, debe inicializarse deliberadamente con asistencia del operador de base; no se sobrescriben cuentas existentes.
 
-## Actualizar el despliegue existente
+Después de ingresar y cambiar la contraseña, el administrador puede crear desde la aplicación las otras dos cuentas reales (galpón y almacén). No es necesario usar cuentas de demostración. `crear-cuentas-demo.mts` y `fixtures-locales.mts` son utilidades para pruebas, no pasos de preparación de producción; las fixtures se limitan a bases locales erp_test_*.
 
-1. Respaldar la base y verificar el censo de cada lote, edades, clientes, saldos y moneda de los registros existentes. Esta rama interpreta importes como BOB; no realiza conversiones de moneda ni inventa pagos/censos históricos.
-2. Aplicar **una vez** `packages/db/migrations/001_operacion.sql` al esquema original del MVP. Es una migración aditiva con transacción; no borra tablas ni registros. No usar `db:push` ni seed sobre producción. Las columnas históricas de censo y agua quedan NULL.
-3. Crear las tres cuentas de demostración contra la base de destino con el script y un archivo privado nuevo. Para usuarios preexistentes sin credenciales se necesita una inicialización deliberada; el script no secuestra ni sobrescribe cuentas.
-4. Compilar la web con el VITE_API_URL de la API desplegada, conservando la configuración Cloudflare/Hyperdrive de destino. Desplegar API y web de esta rama de manera coordinada. La guía de despliegue del repo contiene los comandos del proyecto. No se desplegó durante este trabajo.
-5. Verificar inicio de sesión de los tres perfiles, permisos, recolección → clasificación → venta → pago → caja y actualizar la PWA en dispositivos que conservaran la versión anterior. La API nueva ya no admite los accesos simulados del MVP.
+## Un solo galpón activo
 
-No se han aplicado migraciones ni creado usuarios en Supabase de producción. No hay publicación ni push implícito de esta rama.
+En **Configuración de granja**, elegir el galpón de capacidad 2500 y confirmar su censo actual. El valor inicial sugerido es 2500 porque es la cantidad aproximada indicada; verificar el conteo real. El otro galpón queda fuera de operación y conserva su capacidad e historial.
 
-## Validación reproducible
+La acción «Iniciar operación con un solo galpón» fija el comienzo del nuevo censo en la fecha actual de Bolivia. Si ya hay lotes activos, requiere marcar que se archiven: no se borran recolecciones, bajas, saldos, remisiones ni movimientos anteriores. Las existencias de huevos pendientes de lotes anteriores pueden seguir clasificándose porque ya fueron recolectadas.
+
+La edad puede dejarse pendiente; la interfaz lo indica y no calcula referencias de edad hasta confirmarla. No se reutilizan sin verificar las edades/fechas ficticias del MVP. Para corregir solo edad o ración, usar el formulario del lote activo y no reiniciar el lote.
+
+Durante este trabajo se preparó **la base local** con un solo lote activo de 2500 aves en Galpón 2, manteniendo ambas capacidades y los historiales. La edad real sigue pendiente de confirmación. No se modificó Supabase de producción.
+
+## Actualizar un despliegue existente
+
+1. Respaldar la base y revisar censos, saldos, stock y moneda. Se interpretan los importes como BOB; no se convierten saldos de otras monedas ni se borran datos previos.
+2. Si aún se tiene el esquema original del MVP, aplicar una vez `001_operacion.sql` y después `002_raciones_cuentas.sql`, de packages/db/migrations. Si ya se aplicó 001, aplicar **solo 002**. Las migraciones son aditivas, salvo permitir que kg_alimento sea NULL cuando no se midió. No borran datos ni cambian capacidades. Las edades anteriores requieren confirmación explícita.
+3. Preparar los catálogos si faltan, mediante el seed actualizado, y crear o reutilizar el administrador real. El seed no elimina cuentas demo preexistentes: administración puede desactivarlas después de verificar el acceso real. No ejecutar las fixtures de prueba.
+4. Compilar la web con el origen correcto en VITE_API_URL y desplegar API/web de esta rama de forma coordinada. La API mantiene los bindings Cloudflare/Hyperdrive del proyecto. Las migraciones y la configuración de datos se aplican antes de probar los formularios nuevos.
+5. Desde la aplicación, configurar el único galpón activo, confirmar censo/edad, ingresar stock inicial contado, insumos y fondo de caja reales. Crear las cuentas de los encargados y entregar las contraseñas temporales en privado. Guardar el código del administrador.
+6. Verificar recolección → clasificación → remisión → abono → caja, y actualizar la PWA en dispositivos que conserven una versión anterior.
+
+La publicación de código y la aplicación de migraciones siguen siendo acciones distintas. El push a la rama de trabajo no aplica cambios a producción.
+
+## Caja, bitácoras y notificaciones
+
+Todos los importes se muestran en Bs y se calculan en centavos. Se conservan gastos por responsable, historial por fechas, CSV semanal y arqueo de lunes a domingo ya finalizado. Los cobros de remisiones ingresan automáticamente; las compras solo generan gasto de caja cuando el actor lo marca. El arqueo obtiene el saldo inicial de movimientos anteriores, registra efectivo contado y diferencia, exige explicación si no coincide y cierra fechas anteriores. No ajusta dinero ocultamente ni crea facturas o asientos contables.
+
+La bitácora registra vacunas, vitaminas, despique, cambio de alimento y observaciones con producto, dosis anotada y seguimiento. No prescribe tratamientos ni inventa un calendario sanitario. Las notificaciones internas comparan semanas completas, distinguen alimentación estimada de medida y alertan cobertura baja o seguimiento vencido. Se actualizan al entrar y cada minuto con la app abierta; no son notificaciones push con la app cerrada.
+
+## Fuente y validación
+
+La referencia es el PDF adjunto Hy-Line Brown, diciembre 2025, sistemas convencionales. SHA-256: `3319c0efbcb5753291a33312af04f3cf75d89ac130934a1b28b719ffa6f5ab4d`. `hyline.ts` conserva las 100 filas de postura, alimento y agua de pp. 4–6. No extrapola fuera de semanas 1–100 ni presenta postura de crianza como dato disponible. Las pp. 13–18 aclaran que los cambios de dieta dependen también de producción/tamaño de huevo y condiciones de manejo, no solo de edad.
 
 ```bash
 pnpm type-check
 node --test tests/hyline.test.mjs
 bash tests/run-api.sh
 pnpm build
+pnpm --filter @erp-avicola/api exec wrangler deploy --dry-run
 ```
 
-El runner de integración requiere `createdb`, `dropdb`, Python y PostgreSQL local en 127.0.0.1:5432, además de pnpm/Wrangler. Crea una base temporal propia, inicia un Worker en 8790 y elimina solo sus procesos/base/credenciales al salir. No acepta una API remota. En cloud agregar `/workspace/.setup/pg/root/usr/lib/postgresql/17/bin` al PATH y su `/workspace/.setup/pg/root/usr/lib/x86_64-linux-gnu` a LD_LIBRARY_PATH.
+El runner usa PostgreSQL en loopback, crea una base temporal propia y la elimina al terminar. Requiere createdb, dropdb, Python, pnpm y Wrangler. En cloud activar `/workspace/.setup/bin` y `/workspace/.setup/pg/root/usr/lib/postgresql/17/bin` en PATH, las librerías de `/workspace/.setup/pg/root/usr/lib/x86_64-linux-gnu` en LD_LIBRARY_PATH y XDG_CONFIG_HOME=/workspace/.setup/config.
 
-`pnpm build` reescribe el archivo generado versionado `apps/web/tsconfig.tsbuildinfo`; conservar y restaurar sus bytes al comprobar el build si no se desea incluir un cambio de caché. Vite advierte sobre el tamaño del bundle; la compilación y la generación PWA completan.
+Con Vite de pruebas en 5174 apuntando a API 8790, `ERP_BROWSER_TESTS=1` añade `tests/operacion_ui.cjs` al runner. PLAYWRIGHT_MODULE permite usar el runtime Playwright disponible en el entorno, sin añadirlo al producto. Comprueba estados vacíos para ambos perfiles autorizados, recolección simplificada, móvil, creación de cuenta y recuperación completa. Los datos de prueba quedan en una base aislada.
 
-`tests/navegador.cjs` comprueba los tres perfiles en escritorio/móvil, rechazo de contraseña falsa, notificaciones, informes, creación de insumo y salida. Requiere Playwright/Chromium, una web de pruebas en 5174 apuntando a API aislada en 8790 y ERP_TEST_CREDENTIALS de esa base. PLAYWRIGHT_MODULE permite usar un runtime externo sin agregarlo al producto. La prueba escribe un insumo en esa base aislada.
-
-Resultados de esta implementación: comprobación de tipos en cuatro paquetes, compilación web/PWA, cinco pruebas de dominio, diez pruebas de integración, navegador en escritorio/móvil para los tres perfiles y migración sobre esquema original con un registro histórico conservado sin mediciones inventadas. Son pruebas locales, no certifican el despliegue de producción.
+El build reescribe el generado versionado apps/web/tsconfig.tsbuildinfo; conservar/restaurar sus bytes si solo se valida compilación. Vite puede advertir del tamaño del bundle. Los resultados locales no certifican la base o despliegue públicos.

@@ -151,4 +151,80 @@ class Flow(unittest.TestCase):
         request('/auth/logout','encargado_almacen',{})
         request('/inventario','encargado_almacen',expected=401)
 
+    def test_10_recollection_without_daily_consumption(self):
+        before=request('/insumos','administrador')['insumos']
+        d={'loteId':self.lote['id'],'fecha':TODAY.isoformat(),'huevosSanos':900,'huevosRotos':5}
+        p=request('/produccion','encargado_galpon',d)
+        self.assertIsNone(p['kgAlimento']);self.assertIsNone(p['aguaL'])
+        self.assertGreater(float(p['kgPlanificado']),0);self.assertGreater(float(p['aguaPlanificadaL']),0)
+        self.assertEqual(before,request('/insumos','administrador')['insumos'])
+        # Packages convert to 360 eggs per box, 30 per maple, plus loose eggs.
+        request('/inventario/clasificar','administrador',{'produccionId':p['id'],'fecha':p['fecha'],'tallaId':'G','cajas':2,'maples':3,'sueltos':4})
+        stock=next(r for r in request('/inventario','administrador')['stock'] if r['tallaId']=='G')
+        self.assertEqual(stock['maplesDisponibles']*30+stock['huevosSueltos'],814)
+        request('/inventario/clasificar','administrador',{'produccionId':p['id'],'fecha':p['fecha'],'tallaId':'G','cajas':1,'unidades':1},expected=422)
+        request('/inventario/clasificar','administrador',{'produccionId':p['id'],'fecha':p['fecha'],'tallaId':'G','cajas':1},expected=400)
+
+    def test_11_accounts_recovery_and_forced_password_change(self):
+        email='cuenta-real-test@example.com'
+        account=request('/cuentas','administrador',{'nombre':'Persona de prueba','email':email,'rol':'encargado_galpon'})
+        request('/cuentas','encargado_galpon',expected=403)
+        request('/granja','encargado_galpon',expected=403)
+        request('/cuentas','administrador',{'nombre':'Duplicada','email':email,'rol':'administrador'},expected=409)
+        def login(password):
+            data=request('/auth/login',data={'email':email,'password':password})
+            Flow.tokens['nuevo']=data['token'];return data
+        self.assertTrue(login(account['password'])['cambiarPassword'])
+        request('/galpones','nuevo',expected=403)
+        self.assertTrue(request('/auth/me','nuevo')['cambiarPassword'])
+        password='Mi-clave-nueva-2026!'
+        result=request('/auth/password','nuevo',{'actual':account['password'],'password':password})
+        request('/galpones','nuevo',expected=401)
+        self.assertFalse(login(password)['cambiarPassword'])
+        request('/galpones','nuevo')
+        request('/auth/codigo-respaldo','nuevo',{'password':'erronea'},expected=400)
+        code=request('/auth/codigo-respaldo','nuevo',{'password':password})['codigo']
+        request('/auth/recuperar',data={'email':email,'codigo':result['codigo'],'password':'Otra-clave-nueva-2026!'},expected=401)
+        request('/auth/recuperar',data={'email':email,'codigo':code,'password':'Otra-clave-nueva-2026!'})
+        request('/galpones','nuevo',expected=401)
+        request('/auth/recuperar',data={'email':email,'codigo':code,'password':password},expected=401)
+        login('Otra-clave-nueva-2026!')
+        reset=request('/cuentas/'+account['id']+'/restablecer','administrador',{})
+        request('/galpones','nuevo',expected=401)
+        self.assertTrue(login(reset['password'])['cambiarPassword'])
+        request('/cuentas/'+account['id']+'/estado','administrador',{'activo':False})
+        request('/auth/login',data={'email':email,'password':reset['password']},expected=401)
+        request('/cuentas/'+account['id']+'/estado','administrador',{'activo':True})
+        self.assertTrue(login(reset['password'])['cambiarPassword'])
+        admin_id=next(u['id'] for u in request('/cuentas','administrador') if u['rol']=='administrador')
+        request('/cuentas/'+admin_id+'/estado','administrador',{'activo':False},expected=400)
+
+    def test_115_initial_real_warehouse_stock(self):
+        d={'fecha':TODAY.isoformat(),'tallaId':'XXG','cajas':2,'maples':1,'sueltos':3}
+        request('/inventario/inicial','encargado_galpon',d,expected=403)
+        result=request('/inventario/inicial','administrador',d)
+        self.assertEqual(result['inicial'],753)
+        request('/inventario/inicial','administrador',d,expected=409)
+        stock=next(r for r in request('/inventario','administrador')['stock'] if r['tallaId']=='XXG')
+        self.assertEqual(stock['maplesDisponibles']*30+stock['huevosSueltos'],753)
+
+    def test_12_production_configuration_preserves_history(self):
+        before=request('/granja','administrador');history=len(request('/produccion','administrador'))
+        g=next(g for g in before['galpones'] if g['capacidad']==2500)
+        d={'galponId':g['id'],'aves':2500}
+        request('/granja/iniciar','administrador',d,expected=409)
+        key=str(uuid.uuid4());new=request('/granja/iniciar','administrador',{**d,'sustituirLotes':True},key=key)
+        self.assertEqual(request('/granja/iniciar','administrador',{**d,'sustituirLotes':True},key=key)['id'],new['id'])
+        active=request('/galpones','administrador');self.assertEqual(len(active),1)
+        self.assertEqual(active[0]['avesActuales'],2500);self.assertIsNone(active[0]['edad']);self.assertIsNone(active[0]['referencia'])
+        self.assertEqual(len(request('/produccion','administrador')),history)
+        config=request('/granja','administrador');self.assertEqual(len(config['galpones']),2)
+        self.assertEqual(len([x for x in config['galpones'] if x['activo']]),1)
+        p=request('/produccion','administrador',{'loteId':new['id'],'fecha':TODAY.isoformat(),'huevosSanos':0,'huevosRotos':0})
+        self.assertIsNone(p['kgPlanificado']);self.assertIsNone(p['aguaPlanificadaL'])
+        request('/granja/lotes/'+new['id'],'administrador',{'edadSemanasIngreso':26,'racionG':115})
+        active=request('/galpones','administrador');self.assertEqual(active[0]['edad'],26)
+        self.assertEqual(active[0]['referencia']['posturaMax'],98.5)
+        self.assertEqual(active[0]['racionG'],115)
+
 if __name__=='__main__':unittest.main(verbosity=2)

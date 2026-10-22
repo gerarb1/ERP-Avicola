@@ -5,10 +5,11 @@ import { useAuthStore } from "@/features/auth/auth-store";
 import { fechaBolivia, moneda } from "@erp-avicola/shared";
 export { fechaBolivia, moneda };
 export type Row = Record<string, any>;
-export function useData<T = Row[]>(path: string) {
+export function useData<T = Row[]>(path: string, enabled = true) {
   const id = useAuthStore((s) => s.userId);
   return useQuery({
     queryKey: [id, path],
+    enabled,
     refetchInterval: path === "/notificaciones" ? 60000 : false,
     queryFn: async () => (await apiClient<{ data: T }>(path)).data,
   });
@@ -98,6 +99,7 @@ export type Field = {
   max?: number | string;
   step?: number;
   help?: string;
+  emptyMessage?: string;
 };
 export function useOperationalPost() {
   const pending = useRef<{ path: string; body: string; key: string } | null>(
@@ -136,6 +138,9 @@ export function ActionForm({
   after?: () => void;
   children?: ReactNode;
 }) {
+  const missing = fields.filter(
+    (f) => f.options && !f.options.length && f.required !== false,
+  );
   const cache = useQueryClient();
   const post = useOperationalPost();
   const [pending, setPending] = useState(false),
@@ -182,10 +187,18 @@ export function ActionForm({
                 <select
                   name={f.name}
                   required={f.required !== false}
-                  defaultValue={f.value ?? ""}
+                  key={f.options.map((o) => o[0]).join(",")}
+                  disabled={!f.options.length || pending}
+                  defaultValue={
+                    f.value ?? (f.options.length === 1 ? f.options[0][0] : "")
+                  }
                   className="op-input"
                 >
-                  <option value="">Seleccionar…</option>
+                  <option value="">
+                    {f.options.length
+                      ? "Seleccionar…"
+                      : (f.emptyMessage ?? "No hay opciones disponibles")}
+                  </option>
                   {f.options.map(([v, l]) => (
                     <option key={v} value={v}>
                       {l}
@@ -216,6 +229,12 @@ export function ActionForm({
           ))}
         </div>
         {children}
+        {missing.map((f) => (
+          <p key={f.name} role="status" className="text-sm text-amber-800">
+            {f.emptyMessage ??
+              `No hay registros disponibles para ${f.label.toLowerCase()}. Completa primero el registro previo.`}
+          </p>
+        ))}
         {error && (
           <p role="alert" className="text-red-700 text-sm">
             {error}
@@ -226,7 +245,10 @@ export function ActionForm({
             {message}
           </p>
         )}
-        <button disabled={pending || !navigator.onLine} className="op-button">
+        <button
+          disabled={pending || !navigator.onLine || missing.length > 0}
+          className="op-button"
+        >
           {pending ? "Guardando…" : "Guardar registro"}
         </button>
       </form>

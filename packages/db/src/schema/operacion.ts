@@ -7,7 +7,7 @@ import {
   numeric,
   text,
   date,
-
+  boolean,
 } from "drizzle-orm/pg-core";
 import { usuarios } from "./usuarios";
 import { lotesAves } from "./galpones";
@@ -17,6 +17,8 @@ export const credenciales = pgTable("credenciales", {
     .references(() => usuarios.id),
   hash: text("hash").notNull(),
   salt: text("salt").notNull(),
+  cambiarPassword: boolean("cambiar_password").notNull().default(false),
+  recuperacionHash: varchar("recuperacion_hash", { length: 64 }),
 });
 export const sesiones = pgTable("sesiones", {
   hash: varchar("hash", { length: 64 }).primaryKey(),

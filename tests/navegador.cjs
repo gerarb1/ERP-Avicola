@@ -53,7 +53,7 @@ const fs = require("fs");
       await page
         .getByRole("heading", { name: "Notas de remisión", exact: true })
         .waitFor();
-      await page.getByText("Total: Bs 30,00").waitFor();
+      await page.getByText("Total: Bs 0,00").waitFor();
     }
     await page
       .getByRole("button", { name: "Notificaciones", exact: true })

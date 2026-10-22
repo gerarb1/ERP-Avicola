@@ -13,6 +13,8 @@ import type { AppEnv } from "./types";
 import { AppError } from "./middleware/error-handler";
 import { authMiddleware } from "./middleware/auth";
 import { digest, passwordHash, equalHash, hex } from "./password";
+import { cuentas, recuperacion } from "./cuentas";
+import { granja } from "./granja";
 
 type C = Context<AppEnv>;
 type DB = C["var"]["db"];
@@ -156,7 +158,7 @@ async function stockCambio(
   unidades: number,
   datos: {
     fecha: string;
-    tipo: "ENTRADA" | "SALIDA" | "MERMA";
+    tipo: "ENTRADA" | "SALIDA" | "MERMA" | "AJUSTE";
     motivo: string;
     referenciaId?: string;
     referenciaTipo?: string;
@@ -202,7 +204,8 @@ operaciones.post("/auth/login", async (c) => {
     }),
   );
   const result = await c.var.db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${d.email}))`);
+    // Serialize credential checks/session creation with password resets and revocation.
+    await tx.execute(sql`select pg_advisory_xact_lock(728410)`);
     const [attempt] = await tx
       .select()
       .from(s.intentosLogin)
@@ -243,6 +246,7 @@ operaciones.post("/auth/login", async (c) => {
       userId: u.user.id,
       userName: u.user.nombre,
       userRole: u.user.rol,
+      cambiarPassword: u.credential.cambiarPassword,
     };
   });
   if ("limited" in result)
@@ -258,7 +262,10 @@ operaciones.post("/auth/login", async (c) => {
   c.header("Cache-Control", "no-store");
   return ok(c, result);
 });
+operaciones.route("/auth", recuperacion);
 operaciones.use("*", authMiddleware);
+operaciones.route("/", cuentas);
+operaciones.route("/", granja);
 operaciones.post("/auth/logout", async (c) => {
   await c.var.db
     .delete(s.sesiones)
@@ -291,7 +298,7 @@ operaciones.get("/auth/me", async (c) => {
     })
     .from(s.usuarios)
     .where(eq(s.usuarios.id, c.var.userId));
-  return ok(c, u);
+  return ok(c, { ...u, cambiarPassword: c.var.cambiarPassword });
 });
 operaciones.get("/galpones", async (c) => {
   rol(c, "encargado_galpon", "encargado_almacen");
@@ -299,25 +306,29 @@ operaciones.get("/galpones", async (c) => {
     .select({ lote: s.lotesAves, galpon: s.galpones.nombre })
     .from(s.lotesAves)
     .innerJoin(s.galpones, eq(s.lotesAves.galponId, s.galpones.id))
-    .where(eq(s.lotesAves.activo, true))
+    .where(and(eq(s.lotesAves.activo, true), eq(s.galpones.activo, true)))
     .orderBy(asc(s.galpones.nombre));
   return ok(
     c,
     rows.map((r) => ({
       ...r.lote,
       galpon: r.galpon,
-      edad: edadSemanas(
-        r.lote.fechaIngreso,
-        r.lote.edadSemanasIngreso,
-        fechaBolivia(),
-      ),
-      referencia: referenciaHyLine(
-        edadSemanas(
-          r.lote.fechaIngreso,
-          r.lote.edadSemanasIngreso,
-          fechaBolivia(),
-        ),
-      ),
+      edad: r.lote.edadConfirmada
+        ? edadSemanas(
+            r.lote.fechaIngreso,
+            r.lote.edadSemanasIngreso,
+            fechaBolivia(),
+          )
+        : null,
+      referencia: r.lote.edadConfirmada
+        ? referenciaHyLine(
+            edadSemanas(
+              r.lote.fechaIngreso,
+              r.lote.edadSemanasIngreso,
+              fechaBolivia(),
+            ),
+          )
+        : null,
     })),
   );
 });
@@ -340,10 +351,10 @@ operaciones.post("/produccion", async (c) => {
       fecha: dia,
       huevosSanos: z.number().int().nonnegative(),
       huevosRotos: z.number().int().nonnegative(),
-      kgAlimento: z.number().finite().nonnegative().max(999999),
-      aguaL: z.number().finite().nonnegative().max(999999),
+      kgAlimento: z.number().finite().nonnegative().max(999999).optional(),
+      aguaL: z.number().finite().nonnegative().max(999999).optional(),
       insumoId: z.string().uuid().optional(),
-      tipoAlimento: texto,
+      tipoAlimento: texto.optional(),
       observaciones: z.string().max(300).default(""),
     }),
   );
@@ -370,7 +381,7 @@ operaciones.post("/produccion", async (c) => {
         409,
         "Ya existe una recolección para este lote y fecha",
       );
-    if (d.kgAlimento > 0) {
+    if (d.kgAlimento !== undefined && d.kgAlimento > 0) {
       if (!d.insumoId)
         throw new AppError(400, "Selecciona el alimento utilizado del almacén");
       await insumoCambio(
@@ -388,6 +399,16 @@ operaciones.post("/produccion", async (c) => {
         "ALIMENTO",
       );
     }
+    const referencia = l.edadConfirmada
+      ? referenciaHyLine(
+          edadSemanas(l.fechaIngreso, l.edadSemanasIngreso, d.fecha),
+        )
+      : null;
+    const racion =
+      l.racionG ??
+      (referencia
+        ? (referencia.alimentoMin + referencia.alimentoMax) / 2
+        : null);
     const [p] = await tx
       .insert(s.produccionDiaria)
       .values({
@@ -397,13 +418,23 @@ operaciones.post("/produccion", async (c) => {
         huevosSueltos: d.huevosSanos % 30,
         totalHuevos: total,
         huevosRotos: d.huevosRotos,
-        kgAlimento: d.kgAlimento.toFixed(2),
-        aguaL: d.aguaL.toFixed(2),
+        kgAlimento: d.kgAlimento?.toFixed(2) ?? null,
+        kgPlanificado:
+          racion !== null ? ((aves * racion) / 1000).toFixed(2) : null,
+        aguaPlanificadaL: referencia
+          ? ((aves * (referencia.aguaMin + referencia.aguaMax)) / 2000).toFixed(
+              2,
+            )
+          : null,
+        aguaL: d.aguaL?.toFixed(2) ?? null,
         avesVivas: aves,
-        tipoAlimento: d.tipoAlimento,
+        tipoAlimento: d.tipoAlimento ?? null,
         observaciones: d.observaciones,
         pctPostura: ((total / aves) * 100).toFixed(2),
-        fcr: total ? (d.kgAlimento / (total / 30)).toFixed(4) : null,
+        fcr:
+          total && d.kgAlimento !== undefined
+            ? (d.kgAlimento / (total / 30)).toFixed(4)
+            : null,
         registradoPor: c.var.userId,
       })
       .returning();
@@ -555,12 +586,27 @@ operaciones.post("/inventario/clasificar", async (c) => {
   rol(c, "encargado_almacen");
   const d = await body(
     c,
-    z.object({
-      produccionId: z.string().uuid(),
-      fecha: dia,
-      tallaId: talla,
-      unidades: z.number().int().positive(),
-    }),
+    z
+      .object({
+        produccionId: z.string().uuid(),
+        fecha: dia,
+        tallaId: talla,
+        unidades: z.number().int().positive().optional(),
+        cajas: z.number().int().nonnegative().max(100000).default(0),
+        maples: z.number().int().min(0).max(11).default(0),
+        sueltos: z.number().int().min(0).max(29).default(0),
+      })
+      .refine(
+        (d) =>
+          d.unidades === undefined ||
+          (d.cajas === 0 && d.maples === 0 && d.sueltos === 0),
+        "Usa unidades o cajas/maples/sueltos, no ambos",
+      )
+      .transform((d) => ({
+        ...d,
+        unidades: d.unidades ?? d.cajas * 360 + d.maples * 30 + d.sueltos,
+      }))
+      .refine((d) => d.unidades > 0, "Indica al menos una caja, maple o huevo"),
   );
   return write(c, d, async (tx) => {
     const [p] = await tx
@@ -604,6 +650,51 @@ operaciones.post("/inventario/clasificar", async (c) => {
       c.var.userId,
     );
     return { clasificados: d.unidades };
+  });
+});
+// A real warehouse may already contain eggs when recording begins.
+operaciones.post("/inventario/inicial", async (c) => {
+  rol(c);
+  const d = await body(
+    c,
+    z.object({
+      fecha: dia,
+      tallaId: talla,
+      cajas: z.number().int().min(0).max(100000),
+      maples: z.number().int().min(0).max(11),
+      sueltos: z.number().int().min(0).max(29),
+    }),
+  );
+  return write(c, d, async (tx) => {
+    const [st] = await tx
+      .select()
+      .from(s.inventarioStock)
+      .where(eq(s.inventarioStock.tallaId, d.tallaId));
+    if (!st)
+      throw new AppError(400, "Inicializa primero el catálogo de tallas");
+    const [prior] = await tx
+      .select()
+      .from(s.movimientosInventario)
+      .where(eq(s.movimientosInventario.inventarioStockId, st.id))
+      .limit(1);
+    if (prior)
+      throw new AppError(
+        409,
+        "Esta talla ya tiene movimientos. No se puede reemplazar su stock inicial",
+      );
+    const fisico = d.cajas * 360 + d.maples * 30 + d.sueltos;
+    await stockCambio(
+      tx,
+      d.tallaId,
+      fisico - st.maplesDisponibles * 30 - st.huevosSueltos,
+      {
+        fecha: d.fecha,
+        tipo: "AJUSTE",
+        motivo: `Stock inicial contado: ${fisico} huevos. Sin recolección histórica inventada.`,
+      },
+      c.var.userId,
+    );
+    return { tallaId: d.tallaId, inicial: fisico };
   });
 });
 operaciones.post("/inventario/merma", async (c) => {
@@ -1073,7 +1164,7 @@ export async function analisis(db: DB) {
       .select({ lote: s.lotesAves, galpon: s.galpones.nombre })
       .from(s.lotesAves)
       .innerJoin(s.galpones, eq(s.lotesAves.galponId, s.galpones.id))
-      .where(eq(s.lotesAves.activo, true)),
+      .where(and(eq(s.lotesAves.activo, true), eq(s.galpones.activo, true))),
     db.select().from(s.produccionDiaria).orderBy(asc(s.produccionDiaria.fecha)),
     db.select().from(s.mortalidadDiaria),
     db.select().from(s.insumos),
@@ -1097,7 +1188,15 @@ export async function analisis(db: DB) {
       kg,
       agua,
       postura: aveDias ? (huevos / aveDias) * 100 : null,
-      alimento: aveDias ? (kg * 1000) / aveDias : null,
+      alimento:
+        aveDias && rows.every((p) => p.kgAlimento !== null)
+          ? (kg * 1000) / aveDias
+          : null,
+      alimentoEstimado:
+        aveDias && rows.every((p) => p.kgPlanificado !== null)
+          ? (rows.reduce((a, p) => a + Number(p.kgPlanificado), 0) * 1000) /
+            aveDias
+          : null,
       aguaPorAve: rows.some((p) => p.aguaL === null)
         ? null
         : aveDias
@@ -1106,24 +1205,29 @@ export async function analisis(db: DB) {
     };
   }
   const lotesData = lotes.map(({ lote: l, galpon }) => {
-    const edad = edadSemanas(l.fechaIngreso, l.edadSemanasIngreso, hoy),
-      ref = referenciaHyLine(edad);
+    const edad = l.edadConfirmada
+        ? edadSemanas(l.fechaIngreso, l.edadSemanasIngreso, hoy)
+        : null,
+      ref = edad !== null ? referenciaHyLine(edad) : null;
     const actual = resumen(l.id, ultima.desde, ultima.hasta),
       previo = resumen(l.id, anterior.desde, anterior.hasta);
     const serie = produccion
       .filter((p) => p.loteId === l.id)
       .map((p) => {
-        const r = referenciaHyLine(
-          edadSemanas(l.fechaIngreso, l.edadSemanasIngreso, p.fecha),
-        );
+        const r = l.edadConfirmada
+          ? referenciaHyLine(
+              edadSemanas(l.fechaIngreso, l.edadSemanasIngreso, p.fecha),
+            )
+          : null;
         return {
           fecha: p.fecha,
           postura: p.avesVivas ? (p.totalHuevos / p.avesVivas) * 100 : null,
           min: r?.posturaMin ?? null,
           max: r?.posturaMax ?? null,
-          alimento: p.avesVivas
-            ? (Number(p.kgAlimento) * 1000) / p.avesVivas
-            : null,
+          alimento:
+            p.avesVivas && p.kgAlimento !== null
+              ? (Number(p.kgAlimento) * 1000) / p.avesVivas
+              : null,
           agua:
             p.avesVivas && p.aguaL !== null
               ? (Number(p.aguaL) * 1000) / p.avesVivas
@@ -1208,7 +1312,7 @@ operaciones.get("/notificaciones", async (c) => {
       id: `semanal:${datos.semana.desde}:${l.id}`,
       titulo: `${l.galpon} · ${datos.semana.desde} al ${datos.semana.hasta}`,
       texto: completa
-        ? `Postura ${l.actual.postura!.toFixed(1)}% (${cambio!.toFixed(1)} puntos frente a la semana anterior). Alimento ${l.actual.alimento!.toFixed(1)} g/ave/día (${consumo!.toFixed(1)} g de variación). Agua: ${l.actual.aguaPorAve === null ? "sin medición completa" : l.actual.aguaPorAve.toFixed(1) + " ml/ave/día"}. Bajas: ${l.bajasSemana}.`
+        ? `Postura ${l.actual.postura!.toFixed(1)}% (${cambio!.toFixed(1)} puntos frente a la semana anterior). Alimento ${l.actual.alimento !== null ? l.actual.alimento.toFixed(1) + " g/ave/día medidos" + (consumo !== null ? " (" + consumo.toFixed(1) + " g de variación)" : "") : l.actual.alimentoEstimado !== null ? l.actual.alimentoEstimado.toFixed(1) + " g/ave/día estimados por ración; sin medición" : "sin medición ni ración confirmada"}. Agua: ${l.actual.aguaPorAve === null ? "sin medición completa" : l.actual.aguaPorAve.toFixed(1) + " ml/ave/día"}. Bajas: ${l.bajasSemana}.`
         : `Resumen incompleto: ${l.actual.dias}/7 días esta semana y ${l.previo.dias}/7 la anterior. No se estima variación. Bajas registradas: ${l.bajasSemana}.`,
     };
   });

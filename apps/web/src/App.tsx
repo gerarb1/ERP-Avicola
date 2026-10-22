@@ -9,6 +9,14 @@ import { VentasPage } from "./features/ventas/pages/VentasPage";
 import { FinanzasPage } from "./features/finanzas/pages/FinanzasPage";
 import { DashboardPage } from "./features/bi/pages/DashboardPage";
 
+import {
+  Cuentas,
+  MiCuenta,
+  CodigoRespaldo,
+  RecuperarCuenta,
+} from "./features/operacion/Cuentas";
+import { Granja } from "./features/operacion/Granja";
+
 function RootRedirect() {
   const role = useAuthStore((s) => s.userRole);
   if (!role) return <Navigate to="/login" replace />;
@@ -24,6 +32,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/recuperar-cuenta" element={<RecuperarCuenta />} />
+        <Route path="/codigo-respaldo" element={<CodigoRespaldo />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
@@ -51,10 +61,13 @@ export default function App() {
             </Route>
 
             <Route path="/finanzas" element={<FinanzasPage />} />
+            <Route path="/mi-cuenta" element={<MiCuenta />} />
             <Route
               element={<ProtectedRoute allowedRoles={["administrador"]} />}
             >
               <Route path="/bi" element={<DashboardPage />} />
+              <Route path="/cuentas" element={<Cuentas />} />
+              <Route path="/granja" element={<Granja />} />
             </Route>
           </Route>
         </Route>

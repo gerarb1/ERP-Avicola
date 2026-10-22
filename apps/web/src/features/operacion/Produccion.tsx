@@ -15,8 +15,7 @@ import {
 export function Produccion() {
   const lotes = useData("/galpones"),
     produccion = useData("/produccion"),
-    sucesos = useData("/sucesos"),
-    insumos = useData<Row>("/insumos");
+    sucesos = useData("/sucesos");
   const [selected, setSelected] = useState("");
   const lista = lotes.data ?? [],
     l = lista.find((x) => x.id === selected) ?? lista[0];
@@ -30,15 +29,24 @@ export function Produccion() {
     options,
     value: l?.id,
   };
-  const alimentoOptions: [string, string][] = (insumos.data?.insumos ?? [])
-    .filter((i: Row) => i.tipo === "ALIMENTO")
-    .map((i: Row) => [i.id, `${i.nombre} · ${i.stock} kg disponibles`]);
+  const referencia = l?.referencia;
+  const racion =
+    l?.racionG ??
+    (referencia ? (referencia.alimentoMin + referencia.alimentoMax) / 2 : null);
   return (
     <Page
       title="Galpones y postura"
       description="Recolección sin clasificar, censo de aves y bitácora sanitaria por lote."
     >
       <State query={lotes}>
+        {!lista.length && (
+          <Panel title="Galpón pendiente de configuración">
+            <p className="text-sm text-slate-600">
+              No hay un lote activo. Administración debe configurar el galpón y
+              su censo desde Configuración de granja.
+            </p>
+          </Panel>
+        )}
         <label className="block text-sm max-w-md">
           Consultar lote
           <select
@@ -58,7 +66,10 @@ export function Produccion() {
             <Stats
               items={[
                 ["Aves vivas", l.avesActuales],
-                ["Edad actual", `${l.edad} semanas`],
+                [
+                  "Edad actual",
+                  l.edad === null ? "Por confirmar" : `${l.edad} semanas`,
+                ],
                 [
                   "Postura de referencia",
                   l.referencia?.posturaMin
@@ -67,8 +78,8 @@ export function Produccion() {
                 ],
                 [
                   "Alimento de referencia",
-                  l.referencia
-                    ? `${l.referencia.alimentoMin}–${l.referencia.alimentoMax} g/ave/día`
+                  racion !== null
+                    ? `${num(racion)} g/ave/día estimados`
                     : "Fuera de la tabla",
                 ],
               ]}
@@ -105,41 +116,24 @@ export function Produccion() {
                   value: 0,
                 },
                 {
-                  name: "kgAlimento",
-                  label: "Alimento consumido (kg)",
-                  type: "number",
-                  step: 0.01,
-                  value: 0,
-                },
-                {
-                  name: "aguaL",
-                  label: "Agua consumida (litros)",
-                  type: "number",
-                  step: 0.01,
-                  value: 0,
-                },
-                {
-                  name: "insumoId",
-                  label: "Alimento del almacén",
-                  options: alimentoOptions,
-                  required: false,
-                },
-                {
-                  name: "tipoAlimento",
-                  label: "Tipo / fase de alimento utilizado",
-                },
-                {
                   name: "observaciones",
                   label: "Observaciones",
                   required: false,
                 },
               ]}
             >
+              <p className="text-sm text-slate-600">
+                Registra solo la recolección. No hace falta medir alimento ni
+                agua cada día.{" "}
+                {racion !== null
+                  ? `La ración de referencia actual es ${num(racion)} g/ave/día: aproximadamente ${num((l.avesActuales * racion) / 1000)} kg (${num((l.avesActuales * racion) / 44000, 2)} bolsas de 44 kg) para este lote.`
+                  : "Administración debe confirmar la edad o la ración del lote para calcular el alimento estimado."}
+              </p>
               <p className="text-xs text-slate-500">
-                30 huevos = 1 maple. Registra una vez por lote y día. El consumo
-                descuenta kg del almacén; solicita al encargado registrar
-                primero la compra. La postura incluye los huevos rotos; el
-                almacén solo podrá clasificar los sanos.
+                La postura incluye los huevos rotos; el almacén solo clasifica
+                los sanos. Las estimaciones se guardan separadas de las
+                mediciones y no descuentan stock. Las entregas reales de
+                alimento se registran por bolsas en Almacén.
               </p>
             </ActionForm>
             <ActionForm
@@ -219,9 +213,10 @@ export function Produccion() {
                       ? num((r.totalHuevos / r.avesVivas) * 100) + "%"
                       : "Censo histórico no disponible",
                 ],
-                ["Alimento kg", "kgAlimento"],
+                ["Alimento estimado kg", "kgPlanificado"],
+                ["Medido kg", "kgAlimento"],
                 ["Tipo", "tipoAlimento"],
-                ["Agua L", "aguaL"],
+                ["Agua de referencia L", "aguaPlanificadaL"],
               ]}
             />
           </State>

@@ -23,6 +23,7 @@ createdb "$test_database"
 trap cleanup EXIT
 pnpm --filter @erp-avicola/db db:push > "$private_dir/schema.log" 2>&1 || { cat "$private_dir/schema.log"; exit 1; }
 pnpm --filter @erp-avicola/db db:seed
+pnpm --filter @erp-avicola/db exec tsx scripts/fixtures-locales.mts
 DEMO_CREDENTIALS_FILE="$private_dir/accounts.txt" pnpm --filter @erp-avicola/db exec tsx scripts/crear-cuentas-demo.mts
 mkdir -p apps/api/.wrangler
 python - "$config" <<'PY'
@@ -43,4 +44,7 @@ for attempt in $(seq 1 100); do
   sleep .2
 done
 if [ "$ready" != true ]; then cat "$private_dir/worker.log"; exit 1; fi
+if [ "${ERP_BROWSER_TESTS:-0}" = 1 ]; then
+  ERP_TEST_CREDENTIALS="$private_dir/accounts.txt" node tests/operacion_ui.cjs
+fi
 ERP_TEST_CREDENTIALS="$private_dir/accounts.txt" python tests/operacion_api.py

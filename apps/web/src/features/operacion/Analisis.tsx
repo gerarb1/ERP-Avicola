@@ -53,7 +53,11 @@ export function Analisis() {
             columns={[
               ["Galpón", "galpon"],
               ["Lote", "codigo"],
-              ["Edad", (r) => `${r.edad} semanas`],
+              [
+                "Edad",
+                (r) =>
+                  r.edad === null ? "Por confirmar" : `${r.edad} semanas`,
+              ],
               ["Iniciales", "avesIniciales"],
               ["Vivas", "avesActuales"],
               ["Bajas acumuladas", (r) => r.avesIniciales - r.avesActuales],
@@ -110,6 +114,10 @@ export function Analisis() {
                   ],
                 ]}
               />
+              <p className="text-sm text-slate-500">
+                Alimento estimado por ración: {num(l.actual.alimentoEstimado)}{" "}
+                g/ave/día. Se informa por separado del consumo medido.
+              </p>
               <p className="text-sm text-slate-500">
                 Postura = todos los huevos recolectados ÷ aves vivas de los días
                 registrados × 100. Solo se comparan semanas con los siete días
@@ -175,7 +183,13 @@ export function Analisis() {
                         ? "Censo no disponible"
                         : num(r.postura) + "%",
                   ],
-                  ["Alimento", (r) => num(r.alimento) + " g/ave/día"],
+                  [
+                    "Alimento medido",
+                    (r) =>
+                      r.alimento === null
+                        ? "Sin medición"
+                        : num(r.alimento) + " g/ave/día",
+                  ],
                   [
                     "Agua",
                     (r) =>

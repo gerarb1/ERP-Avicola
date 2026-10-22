@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/features/auth/auth-store";
 import { useState } from "react";
 import {
   Page,
@@ -14,6 +15,7 @@ import {
   type Row,
 } from "./common";
 export function Inventario() {
+  const admin = useAuthStore((s) => s.userRole) === "administrador";
   const q = useData<Row>("/inventario"),
     ins = useData<Row>("/insumos"),
     lotes = useData("/galpones");
@@ -83,6 +85,8 @@ export function Inventario() {
             {
               name: "produccionId",
               label: "Recolección pendiente",
+              emptyMessage:
+                "No hay huevos pendientes de clasificar. Registra primero una recolección en Galpones y postura; si ya se clasificó completa, aparecerá en el historial.",
               options: (q.data?.pendientes ?? []).map((p: Row) => [
                 p.id,
                 `${p.fecha} · ${lotes.data?.find((l) => l.id === p.loteId)?.galpon ?? "Lote"} · ${p.pendientes} huevos`,
@@ -91,10 +95,24 @@ export function Inventario() {
             dateField,
             { name: "tallaId", label: "Talla", options: tallas },
             {
-              name: "unidades",
-              label: "Huevos clasificados (unidades)",
+              name: "cajas",
+              label: "Cajas completas de esta talla",
               type: "number",
-              min: 1,
+              value: 0,
+            },
+            {
+              name: "maples",
+              label: "Maples adicionales",
+              type: "number",
+              value: 0,
+              max: 11,
+            },
+            {
+              name: "sueltos",
+              label: "Huevos sueltos adicionales",
+              type: "number",
+              value: 0,
+              max: 29,
             },
           ]}
         >
@@ -104,6 +122,57 @@ export function Inventario() {
             maples.
           </p>
         </ActionForm>
+        {admin && (
+          <ActionForm
+            title="Stock inicial contado (solo al comenzar)"
+            path="/inventario/inicial"
+            fields={[
+              dateField,
+              {
+                name: "tallaId",
+                label: "Talla sin movimientos previos",
+                options: tallas.filter(([t]) => {
+                  const st = q.data?.stock.find((s: Row) => s.tallaId === t);
+                  return (
+                    st &&
+                    !q.data?.movimientos.some(
+                      (m: Row) => m.inventarioStockId === st.id,
+                    )
+                  );
+                }),
+                emptyMessage:
+                  "Todas las tallas ya tienen movimientos; los saldos iniciales están registrados.",
+              },
+              {
+                name: "cajas",
+                label: "Cajas completas contadas",
+                type: "number",
+                value: 0,
+              },
+              {
+                name: "maples",
+                label: "Maples adicionales contados",
+                type: "number",
+                max: 11,
+                value: 0,
+              },
+              {
+                name: "sueltos",
+                label: "Huevos sueltos contados",
+                type: "number",
+                max: 29,
+                value: 0,
+              },
+            ]}
+          >
+            <p className="text-sm text-slate-500">
+              Si ya había huevos antes de comenzar a usar el sistema, registra
+              aquí el conteo físico por talla. No requiere inventar una
+              recolección anterior. Solo se permite una vez por talla y conserva
+              una constancia del ajuste inicial.
+            </p>
+          </ActionForm>
+        )}
         <ActionForm
           title="Descontar merma de almacén"
           path="/inventario/merma"
@@ -137,6 +206,9 @@ export function Inventario() {
             ]}
           />
         </Panel>
+      </State>
+      <State query={lotes}>
+        <></>
       </State>
       <State query={ins}>
         <Panel title="Insumos disponibles">

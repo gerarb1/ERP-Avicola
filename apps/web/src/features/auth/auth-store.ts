@@ -9,11 +9,13 @@ interface AuthState {
   userName: string | null;
   userRole: Role | null;
   isAuthenticated: boolean;
+  cambiarPassword: boolean;
   login: (data: {
     token: string;
     userId: string;
     userName: string;
     userRole: Role | string;
+    cambiarPassword?: boolean;
   }) => void;
   logout: () => void;
 }
@@ -26,9 +28,11 @@ export const useAuthStore = create<AuthState>()(
       userName: null,
       userRole: null,
       isAuthenticated: false,
+      cambiarPassword: false,
       login: (data) =>
         set({
           ...data,
+          cambiarPassword: data.cambiarPassword ?? false,
           userRole: data.userRole as Role,
           isAuthenticated: true,
         }),
@@ -39,6 +43,7 @@ export const useAuthStore = create<AuthState>()(
           userName: null,
           userRole: null,
           isAuthenticated: false,
+          cambiarPassword: false,
         }),
     }),
     {

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../auth-store";
 import { Button } from "@/shared/components/ui/Button";
 import { Lock, Mail, ShieldCheck } from "lucide-react";
@@ -26,6 +26,7 @@ export function LoginPage() {
           userId: string;
           userName: string;
           userRole: string;
+          cambiarPassword: boolean;
         };
       }>("/auth/login", {
         method: "POST",
@@ -64,7 +65,10 @@ export function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label htmlFor="login-email" className="block text-xs font-semibold text-slate-700 mb-1">
+              <label
+                htmlFor="login-email"
+                className="block text-xs font-semibold text-slate-700 mb-1"
+              >
                 Correo Electrónico
               </label>
               <div className="relative">
@@ -83,7 +87,10 @@ export function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="login-password" className="block text-xs font-semibold text-slate-700 mb-1">
+              <label
+                htmlFor="login-password"
+                className="block text-xs font-semibold text-slate-700 mb-1"
+              >
                 Contraseña
               </label>
               <div className="relative">
@@ -109,6 +116,12 @@ export function LoginPage() {
             </Button>
           </form>
 
+          <Link
+            to="/recuperar-cuenta"
+            className="block text-sm text-emerald-800 underline"
+          >
+            Olvidé mi contraseña
+          </Link>
           <p className="text-xs text-slate-500">
             Ingresa con la cuenta asignada por administración. Tu perfil
             determina las operaciones disponibles.

@@ -19,7 +19,7 @@ export function Ventas() {
   const cache = useQueryClient();
   const post = useOperationalPost();
   const [lines, setLines] = useState([
-    { tallaId: "M", cajas: 0, maples: 1, sueltos: 0, precioMaple: 30 },
+    { tallaId: "M", cajas: 0, maples: 1, sueltos: 0, precioMaple: 0 },
   ]);
   const [error, setError] = useState(""),
     [success, setSuccess] = useState(""),
@@ -55,7 +55,7 @@ export function Ventas() {
       setSuccess("Remisión guardada y stock descontado.");
       f.reset();
       setLines([
-        { tallaId: "M", cajas: 0, maples: 1, sueltos: 0, precioMaple: 30 },
+        { tallaId: "M", cajas: 0, maples: 1, sueltos: 0, precioMaple: 0 },
       ]);
     } catch (e) {
       setError((e as Error).message);
@@ -88,7 +88,11 @@ export function Ventas() {
               <label>
                 Cliente
                 <select name="clienteId" required className="op-input">
-                  <option value="">Seleccionar…</option>
+                  <option value="">
+                    {clientes.length
+                      ? "Seleccionar…"
+                      : "Primero registra un cliente arriba"}
+                  </option>
                   {clientes.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.nombre}
@@ -212,7 +216,7 @@ export function Ventas() {
                     cajas: 0,
                     maples: 1,
                     sueltos: 0,
-                    precioMaple: 30,
+                    precioMaple: 0,
                   },
                 ])
               }
@@ -232,7 +236,7 @@ export function Ventas() {
             )}
             <button
               className="op-button"
-              disabled={pending || !navigator.onLine}
+              disabled={pending || !navigator.onLine || !clientes.length}
             >
               {pending ? "Guardando…" : "Guardar y despachar"}
             </button>
@@ -245,6 +249,8 @@ export function Ventas() {
             {
               name: "notaId",
               label: "Remisión con saldo pendiente",
+              emptyMessage:
+                "No hay remisiones pendientes de pago. Crea una venta con saldo por cobrar; las remisiones pagadas están en el historial y no necesitan abono.",
               options: notas
                 .filter(
                   (n) =>

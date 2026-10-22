@@ -11,18 +11,21 @@ import {
   LogOut,
   X,
   Menu,
+  Users,
+  Settings,
+  UserRound,
 } from "lucide-react";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useData, State, type Row } from "@/features/operacion/common";
 import { apiClient } from "@/lib/api-client";
 export function Layout() {
-  const { userName, userRole, logout } = useAuthStore();
+  const { userName, userRole, logout, cambiarPassword } = useAuthStore();
   const navigate = useNavigate(),
     cache = useQueryClient();
   const [menu, setMenu] = useState(false),
     [notifications, setNotifications] = useState(false),
     [online, setOnline] = useState(navigator.onLine);
-  const q = useData("/notificaciones"),
+  const q = useData("/notificaciones", !cambiarPassword),
     me = useData<Row>("/auth/me");
   useEffect(() => {
     const on = () => setOnline(navigator.onLine);
@@ -64,7 +67,29 @@ export function Layout() {
       icon: ChartNoAxesCombined,
       roles: ["administrador"],
     },
-  ].filter((l) => l.roles.includes(userRole ?? ""));
+    {
+      to: "/cuentas",
+      label: "Cuentas y acceso",
+      icon: Users,
+      roles: ["administrador"],
+    },
+    {
+      to: "/granja",
+      label: "Configuración de granja",
+      icon: Settings,
+      roles: ["administrador"],
+    },
+    {
+      to: "/mi-cuenta",
+      label: "Mi cuenta",
+      icon: UserRound,
+      roles: ["administrador", "encargado_galpon", "encargado_almacen"],
+    },
+  ].filter(
+    (l) =>
+      l.roles.includes(userRole ?? "") &&
+      (!cambiarPassword || l.to === "/mi-cuenta"),
+  );
   const roles: Record<string, string> = {
     administrador: "Administración",
     encargado_galpon: "Encargado de galpón",

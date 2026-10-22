@@ -11,6 +11,7 @@ export type Variables = {
   db: NodePgDatabase<typeof schema>;
   userId: string;
   userRole: string;
+  cambiarPassword: boolean;
 };
 
 export type AppEnv = {
