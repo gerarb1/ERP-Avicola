@@ -105,7 +105,8 @@ export const HYLINE: ReferenciaHyLine[] = [
   {"semana":99,"posturaMin":71.3,"posturaMax":78.0,"aguaMin":165.0,"aguaMax":236.0,"alimentoMin":110.0,"alimentoMax":118.0},
   {"semana":100,"posturaMin":70.8,"posturaMax":77.6,"aguaMin":165.0,"aguaMax":236.0,"alimentoMin":110.0,"alimentoMax":118.0}
 ];
-export function edadSemanas(fechaIngreso: string, edadIngreso: number, fecha: string): number {
+export function edadSemanas(fechaIngreso: string, edadIngreso: number, fecha: string, fechaNacimiento?: string | null): number {
+  if (fechaNacimiento) return Math.floor((Date.parse(fecha + 'T12:00:00Z') - Date.parse(fechaNacimiento + 'T12:00:00Z')) / 604800000);
   return edadIngreso + Math.floor((Date.parse(fecha + 'T12:00:00Z') - Date.parse(fechaIngreso + 'T12:00:00Z')) / 604800000);
 }
 export function referenciaHyLine(semana: number) { return HYLINE.find(r => r.semana === Math.floor(semana)) ?? null; }

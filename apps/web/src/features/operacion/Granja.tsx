@@ -1,3 +1,4 @@
+import { edadSemanas } from "@erp-avicola/shared";
 import {
   Page,
   Panel,
@@ -41,10 +42,13 @@ export function Granja() {
               inicio del registro {l.fechaIngreso}
             </p>
             <p className="text-sm text-slate-600">
-              Edad:{" "}
-              {l.edadConfirmada
-                ? `${l.edadSemanasIngreso} semanas al ${l.fechaIngreso}`
-                : "Pendiente de confirmar; no se calculan referencias por edad"}
+              Nacimiento: {l.fechaNacimiento ?? "No registrado"} · llegada:{" "}
+              {l.fechaLlegada ?? "No registrada"}. Edad:{" "}
+              {l.fechaNacimiento
+                ? `${edadSemanas(l.fechaIngreso, l.edadSemanasIngreso, fechaBolivia(), l.fechaNacimiento)} semanas completas hoy`
+                : l.edadConfirmada
+                  ? `${l.edadSemanasIngreso} semanas al ${l.fechaIngreso}`
+                  : "Pendiente de confirmar; no se calculan referencias por edad"}
               . Ración:{" "}
               {l.racionG
                 ? `${l.racionG} g/ave/día configurados`
@@ -57,14 +61,34 @@ export function Granja() {
               path={`/granja/lotes/${l.id}`}
               fields={[
                 {
-                  name: "edadSemanasIngreso",
-                  label: `Edad en semanas que tenían al ${l.fechaIngreso}`,
-                  type: "number",
-                  min: 1,
-                  max: 200,
+                  name: "fechaNacimiento",
+                  label: "Fecha de nacimiento",
+                  type: "date",
                   required: false,
-                  value: l.edadConfirmada ? l.edadSemanasIngreso : undefined,
+                  value: l.fechaNacimiento ?? undefined,
                 },
+                {
+                  name: "fechaLlegada",
+                  label: "Fecha de llegada a la granja",
+                  type: "date",
+                  required: false,
+                  value: l.fechaLlegada ?? undefined,
+                },
+                ...(!l.fechaNacimiento
+                  ? [
+                      {
+                        name: "edadSemanasIngreso",
+                        label: `Edad en semanas que tenían al ${l.fechaIngreso}`,
+                        type: "number",
+                        min: 1,
+                        max: 200,
+                        required: false,
+                        value: l.edadConfirmada
+                          ? l.edadSemanasIngreso
+                          : undefined,
+                      },
+                    ]
+                  : []),
                 {
                   name: "racionG",
                   label: "Ración acordada (g/ave/día, opcional)",
@@ -77,9 +101,11 @@ export function Granja() {
               ]}
             >
               <p className="text-xs text-slate-500">
-                La edad se expresa para la fecha de inicio del registro, no para
-                hoy si pasó tiempo. Una ración manual debe ser confirmada por el
-                responsable; el sistema no prescribe dietas.
+                La fecha de nacimiento tiene prioridad sobre una edad aproximada
+                y permite avanzar la edad en el día correcto. Sin fecha de
+                nacimiento, la edad se expresa para la fecha de inicio del
+                registro, no para hoy si pasó tiempo. Una ración manual debe ser
+                confirmada por el responsable; el sistema no prescribe dietas.
               </p>
             </ActionForm>
             {l.racionG && (
@@ -111,6 +137,18 @@ export function Granja() {
               type: "number",
               min: 1,
               value: 2500,
+            },
+            {
+              name: "fechaNacimiento",
+              label: "Nacimiento (si se conoce)",
+              type: "date",
+              required: false,
+            },
+            {
+              name: "fechaLlegada",
+              label: "Llegada a la granja (si se conoce)",
+              type: "date",
+              required: false,
             },
             {
               name: "edadSemanas",

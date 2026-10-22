@@ -318,6 +318,7 @@ operaciones.get("/galpones", async (c) => {
             r.lote.fechaIngreso,
             r.lote.edadSemanasIngreso,
             fechaBolivia(),
+            r.lote.fechaNacimiento,
           )
         : null,
       referencia: r.lote.edadConfirmada
@@ -326,6 +327,7 @@ operaciones.get("/galpones", async (c) => {
               r.lote.fechaIngreso,
               r.lote.edadSemanasIngreso,
               fechaBolivia(),
+              r.lote.fechaNacimiento,
             ),
           )
         : null,
@@ -401,7 +403,12 @@ operaciones.post("/produccion", async (c) => {
     }
     const referencia = l.edadConfirmada
       ? referenciaHyLine(
-          edadSemanas(l.fechaIngreso, l.edadSemanasIngreso, d.fecha),
+          edadSemanas(
+            l.fechaIngreso,
+            l.edadSemanasIngreso,
+            d.fecha,
+            l.fechaNacimiento,
+          ),
         )
       : null;
     const racion =
@@ -1206,7 +1213,12 @@ export async function analisis(db: DB) {
   }
   const lotesData = lotes.map(({ lote: l, galpon }) => {
     const edad = l.edadConfirmada
-        ? edadSemanas(l.fechaIngreso, l.edadSemanasIngreso, hoy)
+        ? edadSemanas(
+            l.fechaIngreso,
+            l.edadSemanasIngreso,
+            hoy,
+            l.fechaNacimiento,
+          )
         : null,
       ref = edad !== null ? referenciaHyLine(edad) : null;
     const actual = resumen(l.id, ultima.desde, ultima.hasta),
@@ -1216,7 +1228,12 @@ export async function analisis(db: DB) {
       .map((p) => {
         const r = l.edadConfirmada
           ? referenciaHyLine(
-              edadSemanas(l.fechaIngreso, l.edadSemanasIngreso, p.fecha),
+              edadSemanas(
+                l.fechaIngreso,
+                l.edadSemanasIngreso,
+                p.fecha,
+                l.fechaNacimiento,
+              ),
             )
           : null;
         return {

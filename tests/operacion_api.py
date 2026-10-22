@@ -227,4 +227,14 @@ class Flow(unittest.TestCase):
         self.assertEqual(active[0]['referencia']['posturaMax'],98.5)
         self.assertEqual(active[0]['racionG'],115)
 
+    def test_13_exact_birth_and_arrival_dates(self):
+        l=request('/galpones','administrador')[0]
+        result=request('/granja/lotes/'+l['id'],'administrador',{'fechaNacimiento':'2026-02-11','fechaLlegada':'2026-02-12'})
+        self.assertEqual(result['fechaNacimiento'],'2026-02-11');self.assertEqual(result['fechaLlegada'],'2026-02-12')
+        expected=(TODAY-dt.date(2026,2,11)).days//7
+        self.assertEqual(request('/galpones','administrador')[0]['edad'],expected)
+        request('/granja/lotes/'+l['id'],'administrador',{'fechaLlegada':'2026-02-10'},expected=400)
+        request('/granja/lotes/'+l['id'],'administrador',{'fechaNacimiento':'2026-02-30'},expected=422)
+        request('/granja/lotes/'+l['id'],'administrador',{'edadSemanasIngreso':expected+4},expected=400)
+
 if __name__=='__main__':unittest.main(verbosity=2)

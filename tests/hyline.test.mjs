@@ -31,3 +31,11 @@ test('moneda Bs y sumas en centavos',()=>{
  assert.match(moneda(12.5),/^Bs /);
  assert.ok(!moneda(12.5).includes('$'));
 });
+
+test('fecha real de nacimiento conserva los días al avanzar la edad',()=>{
+  // Llegaron el 12 de febrero con un día de nacidas: nacieron el 11.
+  assert.equal(edadSemanas('2026-10-22',36,'2026-10-22','2026-02-11'),36);
+  assert.equal(edadSemanas('2026-10-22',36,'2026-10-27','2026-02-11'),36);
+  assert.equal(edadSemanas('2026-10-22',36,'2026-10-28','2026-02-11'),37);
+  assert.equal(referenciaHyLine(edadSemanas('2026-10-22',36,'2026-10-22','2026-02-11')).posturaMin,92.5);
+});

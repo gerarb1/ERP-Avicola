@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   uuid,
@@ -7,6 +8,7 @@ import {
   timestamp,
   date,
   index,
+  check,
 } from "drizzle-orm/pg-core";
 
 export const galpones = pgTable("galpones", {
@@ -30,6 +32,8 @@ export const lotesAves = pgTable(
     avesIniciales: integer("aves_iniciales").notNull(),
     avesActuales: integer("aves_actuales").notNull(),
     fechaIngreso: date("fecha_ingreso").notNull(),
+    fechaNacimiento: date("fecha_nacimiento"),
+    fechaLlegada: date("fecha_llegada"),
     edadSemanasIngreso: integer("edad_semanas_ingreso").notNull().default(0),
     edadConfirmada: boolean("edad_confirmada").notNull().default(false),
     racionG: integer("racion_g"),
@@ -37,5 +41,11 @@ export const lotesAves = pgTable(
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
-  (table) => [index("lotes_aves_galpon_id_idx").on(table.galponId)],
+  (table) => [
+    index("lotes_aves_galpon_id_idx").on(table.galponId),
+    check(
+      "lote_fechas_orden",
+      sql`(${table.fechaNacimiento} IS NULL OR ${table.fechaNacimiento} <= ${table.fechaIngreso}) AND (${table.fechaLlegada} IS NULL OR ${table.fechaLlegada} <= ${table.fechaIngreso}) AND (${table.fechaNacimiento} IS NULL OR ${table.fechaLlegada} IS NULL OR ${table.fechaNacimiento} <= ${table.fechaLlegada})`,
+    ),
+  ],
 );
