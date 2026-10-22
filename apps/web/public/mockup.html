@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup UX/UI — ERP Avícola Alta La Estancia</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Custom subtle transitions and scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    .slide-over-enter { transform: translateX(100%); }
+    .slide-over-enter-active { transform: translateX(0%); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+    .slide-over-exit { transform: translateX(0%); }
+    .slide-over-exit-active { transform: translateX(100%); transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-800 antialiased font-sans h-screen flex flex-col overflow-hidden">
+
+  <!-- ========================================================================= -->
+  <!-- BARRA SUPERIOR (TOP APP BAR): Contexto Global, Breadcrumbs y Cambio Rápido -->
+  <!-- ========================================================================= -->
+  <header class="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-30 select-none shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    
+    <!-- Lado Izquierdo: Toggle Sidebar + Logo + Selector Global + Migas de Pan -->
+    <div class="flex items-center gap-3">
+      <!-- Botón colapsar sidebar -->
+      <button onclick="toggleSidebar()" title="Alternar barra lateral" class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+      </button>
+
+      <!-- Logo / Marca -->
+      <div class="flex items-center gap-2 pr-3 border-r border-slate-200">
+        <div class="w-7 h-7 rounded-lg bg-emerald-700 flex items-center justify-center text-amber-300 font-bold text-xs shadow-xs">
+          AE
+        </div>
+        <span class="font-bold text-sm tracking-tight text-slate-900 hidden sm:inline">Alta La Estancia</span>
+      </div>
+
+      <!-- Selector Global de Galpón / Almacén (Pill Selector Siempre Visible) -->
+      <div class="relative">
+        <button onclick="toggleContextDropdown()" id="contextPillBtn" class="flex items-center gap-2 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 rounded-full text-xs font-medium text-slate-800 transition-all">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="currentContextLabel" class="font-semibold">Galpón 01 — Lote Hy-Line 34</span>
+          <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+
+        <!-- Dropdown Selector Contexto -->
+        <div id="contextDropdown" class="hidden absolute top-9 left-0 w-64 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 text-xs">
+          <div class="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Unidades de Postura</div>
+          <button onclick="setContext('Galpón 01 — Lote Hy-Line 34', 'Galpón 01')" class="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center justify-between text-slate-700">
+            <span><strong>Galpón 01</strong> (1,500 aves · Sem 34)</span>
+            <span class="text-emerald-700 text-[11px] font-bold">Activo</span>
+          </button>
+          <button onclick="setContext('Galpón 02 — Lote Hy-Line 28', 'Galpón 02')" class="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center justify-between text-slate-700">
+            <span><strong>Galpón 02</strong> (2,500 aves · Sem 28)</span>
+            <span class="text-amber-600 text-[11px] font-bold">1 Alerta</span>
+          </button>
+          <div class="my-1 border-t border-slate-100"></div>
+          <div class="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Logística y Almacén</div>
+          <button onclick="setContext('Almacén Central — Tallas', 'Almacén Central')" class="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center justify-between text-slate-700">
+            <span><strong>Almacén Central</strong> (Stock Tallas)</span>
+            <span class="text-slate-400 text-[11px]">4,520 maples</span>
+          </button>
+          <button onclick="setContext('Toda la Granja (Consolidado)', 'Consolidado')" class="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center justify-between text-slate-700 font-medium">
+            <span>🌐 <strong>Vista Global Granja</strong></span>
+            <span class="text-slate-400 text-[11px]">4,000 aves</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Migas de Pan (Breadcrumbs) indispensables para no perderse -->
+      <nav class="hidden lg:flex items-center gap-1.5 text-xs text-slate-400 pl-2">
+        <span class="hover:text-slate-600 cursor-pointer">Granja</span>
+        <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <span class="hover:text-slate-600 cursor-pointer">Aves de Postura</span>
+        <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <span id="breadcrumbCurrent" class="font-medium text-slate-800">Galpón 01</span>
+        <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-slate-500">Lote Activo</span>
+      </nav>
+    </div>
+
+    <!-- Lado Derecho: Buscador Command Palette + Notificaciones + Perfil -->
+    <div class="flex items-center gap-3">
+      
+      <!-- Buscador rápido / Command Palette Trigger (Cmd+K) -->
+      <button onclick="openCommandPalette()" class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-500 transition-colors w-48 justify-between">
+        <span class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <span>Buscar galpón, lote...</span>
+        </span>
+        <kbd class="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] text-slate-500 font-mono shadow-2xs">Ctrl+K</kbd>
+      </button>
+
+      <!-- Indicador de Anomalías / Notificaciones Críticas (Punto discreto solo si hay alertas) -->
+      <button onclick="openIncidentSlideOver('Galpón 02')" class="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors" title="1 anomalía detectada en Galpón 02">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <!-- Punto ámbar indicador de anomalía activa -->
+        <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
+      </button>
+
+      <!-- Perfil de Usuario con Rol Activo -->
+      <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+        <div class="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-bold text-xs text-slate-700" id="userAvatar">
+          A
+        </div>
+        <div class="hidden xl:block text-left text-xs leading-tight">
+          <div class="font-semibold text-slate-900" id="userNameLabel">Don Pedro</div>
+          <div class="text-[11px] text-slate-500" id="userRoleLabel">Administrador</div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- BARRA DE CONMUTACIÓN DE ROL (HERRAMIENTA DEL MOCK PARA PROBAR LAS 3 VISTAS) -->
+  <!-- ========================================================================= -->
+  <div class="bg-emerald-950 text-white px-4 py-1.5 flex items-center justify-between text-xs shrink-0 z-20">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+      <span class="font-semibold tracking-wide uppercase text-[11px] text-emerald-300">Modo Mockup de UX/UI:</span>
+      <span class="text-emerald-100 hidden sm:inline">Selecciona un rol para ver la distribución y densidad de pantalla adaptada:</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <button onclick="switchRole('admin')" id="roleBtnAdmin" class="px-2.5 py-1 rounded bg-emerald-700 text-white font-medium text-xs shadow-xs hover:bg-emerald-600 transition-all">
+        👑 1. Administrador (Analítico)
+      </button>
+      <button onclick="switchRole('galponero')" id="roleBtnGalponero" class="px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-300 font-medium text-xs hover:bg-emerald-800 transition-all">
+        🚜 2. Galponero (Táctico)
+      </button>
+      <button onclick="switchRole('almacenero')" id="roleBtnAlmacenero" class="px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-300 font-medium text-xs hover:bg-emerald-800 transition-all">
+        📦 3. Almacenero (Logística)
+      </button>
+      <button onclick="toggleSkeletonDemo()" title="Probar esqueletos de carga elegantes" class="ml-2 px-2 py-1 rounded bg-slate-800 text-slate-300 text-xs hover:bg-slate-700 flex items-center gap-1">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span>Skeleton</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- CONTENEDOR CENTRAL: SIDEBAR IZQUIERDA + CANVAS DE TRABAJO                -->
+  <!-- ========================================================================= -->
+  <div class="flex flex-1 overflow-hidden relative">
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- BARRA LATERAL IZQUIERDA (SIDEBAR): Navegación Modular y Colapsable   -->
+    <!-- --------------------------------------------------------------------- -->
+    <aside id="mainSidebar" class="w-60 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 transition-all duration-200 z-10 select-none overflow-y-auto">
+      
+      <div class="p-3 space-y-4">
+        
+        <!-- BLOQUE: GENERAL -->
+        <div class="space-y-1">
+          <div class="sidebar-heading px-2.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            General
+          </div>
+          <a href="#" class="sidebar-link active flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border-l-2 border-emerald-700">
+            <svg class="w-4 h-4 shrink-0 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span class="sidebar-label">Panel Principal</span>
+          </a>
+          <a href="#" id="menuItemBI" class="sidebar-link flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span class="sidebar-label">Módulo BI & Analítica</span>
+          </a>
+        </div>
+
+        <!-- BLOQUE: PRODUCCIÓN -->
+        <div class="space-y-1" id="sectionProduccion">
+          <div class="sidebar-heading px-2.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Producción
+          </div>
+          <a href="#" class="sidebar-link flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span class="sidebar-label">Galpones y Lotes</span>
+          </a>
+          <a href="#" class="sidebar-link flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="sidebar-label">Registro Diario Postura</span>
+          </a>
+          <a href="#" class="sidebar-link flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
+            <span class="sidebar-label">Bajas y Mortalidad</span>
+          </a>
+        </div>
+
+        <!-- BLOQUE: LOGÍSTICA & ALMACÉN -->
+        <div class="space-y-1" id="sectionLogistica">
+          <div class="sidebar-heading px-2.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Logística
+          </div>
+          <a href="#" class="sidebar-link flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span class="sidebar-label">Inventario por Tallas</span>
+          </a>
+          <a href="#" class="sidebar-link flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="sidebar-label">Notas de Remisión</span>
+          </a>
+          <a href="#" class="sidebar-link flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            <span class="sidebar-label">Mermas y Roturas</span>
+          </a>
+        </div>
+
+        <!-- BLOQUE: FINANZAS (Solo Admin) -->
+        <div class="space-y-1" id="sectionFinanzas">
+          <div class="sidebar-heading px-2.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Finanzas
+          </div>
+          <a href="#" class="sidebar-link flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="sidebar-label">Caja Chica y Egresos</span>
+          </a>
+          <a href="#" class="sidebar-link flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span class="sidebar-label">Arqueo Dominical</span>
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Pie del Sidebar: Estado de Conexión Offline / Sincronización -->
+      <div class="p-3 border-t border-slate-200 bg-slate-50/70">
+        <div class="flex items-center justify-between text-xs text-slate-600">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="sidebar-label font-medium">Sincronizado</span>
+          </div>
+          <span class="sidebar-label text-[11px] text-slate-400 font-mono">0 pendientes</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- ÁREA DE TRABAJO PRINCIPAL (CANVAS): Estructura por Capas              -->
+    <!-- --------------------------------------------------------------------- -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+
+      <!-- =================================================================== -->
+      <!-- VISTA 1: ADMINISTRADOR (Dashboard Analítico y Estratégico)         -->
+      <!-- =================================================================== -->
+      <div id="viewAdmin" class="space-y-6">
+
+        <!-- Capa 1: Fila Superior de KPIs con Delta Porcentual -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- KPI 1 -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+            <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">% Postura Actual</div>
+            <div class="mt-2 flex items-baseline justify-between">
+              <span class="text-2xl font-bold text-slate-900">93.2%</span>
+              <span class="inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                ▲ +1.2% <span class="text-slate-400 font-normal ml-1">vs semana ant.</span>
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">Estándar Hy-Line: 92.0%</div>
+          </div>
+
+          <!-- KPI 2 -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+            <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">Mortalidad Semanal</div>
+            <div class="mt-2 flex items-baseline justify-between">
+              <span class="text-2xl font-bold text-slate-900">0.22%</span>
+              <span class="inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                ▼ -0.05% <span class="text-slate-400 font-normal ml-1">óptimo</span>
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">9 aves bajas acumuladas en 7 días</div>
+          </div>
+
+          <!-- KPI 3 -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+            <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">Stock Alimento en Silo</div>
+            <div class="mt-2 flex items-baseline justify-between">
+              <span class="text-2xl font-bold text-slate-900">8.5 días</span>
+              <span class="inline-flex items-center text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                3,740 kg <span class="text-slate-400 font-normal ml-1">restantes</span>
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">Consumo: ~440 kg/día granja</div>
+          </div>
+
+          <!-- KPI 4 -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+            <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">Coste Operativo / Huevo</div>
+            <div class="mt-2 flex items-baseline justify-between">
+              <span class="text-2xl font-bold text-slate-900">$0.062</span>
+              <span class="inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                Margen 48.5%
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">FCR promedio: 3.55 kg/maple</div>
+          </div>
+        </div>
+
+        <!-- Capa 2: Gráfico Dual + Tabla de Alertas / Excepciones -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Gráfico Dual: Curva Real vs Genética Esperada -->
+          <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div>
+                <h3 class="font-bold text-sm text-slate-900">Curva de Producción Real vs Estándar Genético</h3>
+                <p class="text-xs text-slate-500">Hy-Line Brown (Semana 28 a 34)</p>
+              </div>
+              <div class="flex items-center gap-4 text-xs">
+                <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-emerald-600 rounded"></span> Producción Real</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 border-t-2 border-dashed border-red-500"></span> Guía Hy-Line (92%)</span>
+              </div>
+            </div>
+
+            <!-- Gráfico visual SVG -->
+            <div class="h-56 w-full relative flex items-end justify-between px-4 pb-4 pt-6 bg-slate-50/50 rounded-lg border border-slate-100">
+              <!-- Línea punteada de guía Hy-Line 92% -->
+              <div class="absolute left-0 right-0 top-16 border-b border-dashed border-red-400 z-0">
+                <span class="absolute right-2 -top-4 text-[10px] text-red-500 font-mono">Meta: 92%</span>
+              </div>
+
+              <!-- Barras / Puntos de días -->
+              <div class="flex flex-col items-center gap-1.5 z-10">
+                <div class="w-8 bg-emerald-500 rounded-t-sm h-36 relative group cursor-pointer hover:bg-emerald-600 transition-all flex items-start justify-center pt-1">
+                  <span class="text-[10px] font-bold text-white">92.8</span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-medium">Lun</span>
+              </div>
+
+              <div class="flex flex-col items-center gap-1.5 z-10">
+                <div class="w-8 bg-emerald-500 rounded-t-sm h-34 relative group cursor-pointer hover:bg-emerald-600 transition-all flex items-start justify-center pt-1">
+                  <span class="text-[10px] font-bold text-white">91.4</span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-medium">Mar</span>
+              </div>
+
+              <div class="flex flex-col items-center gap-1.5 z-10">
+                <div class="w-8 bg-emerald-500 rounded-t-sm h-35 relative group cursor-pointer hover:bg-emerald-600 transition-all flex items-start justify-center pt-1">
+                  <span class="text-[10px] font-bold text-white">92.4</span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-medium">Mié</span>
+              </div>
+
+              <div class="flex flex-col items-center gap-1.5 z-10">
+                <div class="w-8 bg-emerald-600 rounded-t-sm h-40 relative group cursor-pointer hover:bg-emerald-700 transition-all flex items-start justify-center pt-1 shadow-sm">
+                  <span class="text-[10px] font-bold text-white">94.1</span>
+                </div>
+                <span class="text-[11px] text-slate-700 font-bold">Jue</span>
+              </div>
+
+              <div class="flex flex-col items-center gap-1.5 z-10">
+                <div class="w-8 bg-emerald-500 rounded-t-sm h-37 relative group cursor-pointer hover:bg-emerald-600 transition-all flex items-start justify-center pt-1">
+                  <span class="text-[10px] font-bold text-white">93.1</span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-medium">Vie</span>
+              </div>
+
+              <div class="flex flex-col items-center gap-1.5 z-10">
+                <div class="w-8 bg-emerald-500 rounded-t-sm h-36 relative group cursor-pointer hover:bg-emerald-600 transition-all flex items-start justify-center pt-1">
+                  <span class="text-[10px] font-bold text-white">92.7</span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-medium">Sáb</span>
+              </div>
+
+              <div class="flex flex-col items-center gap-1.5 z-10">
+                <div class="w-8 bg-emerald-700 rounded-t-sm h-39 relative group cursor-pointer hover:bg-emerald-800 transition-all flex items-start justify-center pt-1 shadow-sm">
+                  <span class="text-[10px] font-bold text-white">93.8</span>
+                </div>
+                <span class="text-[11px] text-slate-700 font-bold">Dom</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabla de Alertas / Excepciones (Enfoque en Desviaciones, No en Ruido) -->
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                  <h3 class="font-bold text-sm text-slate-900">Alertas por Excepción</h3>
+                </div>
+                <span class="text-xs bg-amber-50 text-amber-800 font-semibold px-2 py-0.5 rounded-full">1 activa</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">Solo galpones o parámetros con desvíos:</p>
+
+              <!-- Tarjeta de alerta clickeable que abre el Slide-over -->
+              <div onclick="openIncidentSlideOver('Galpón 02')" class="mt-3 p-3 rounded-lg border border-amber-200 bg-amber-50/60 hover:bg-amber-100/70 transition-all cursor-pointer group space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-xs text-amber-950 flex items-center gap-1.5">
+                    ⚠️ Galpón 02 (Lote 28)
+                  </span>
+                  <span class="text-[10px] font-semibold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">Hace 45 min</span>
+                </div>
+                <p class="text-xs text-slate-700 leading-snug">
+                  Caída del <strong>2.1% en consumo de agua</strong> en línea 3 y registro de 3 bajas por golpe de calor.
+                </p>
+                <div class="flex items-center gap-1 text-[11px] font-bold text-emerald-700 group-hover:underline pt-1">
+                  <span>Ver incidente en panel lateral</span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+              </div>
+
+              <!-- Galpón 01 en estado nominal -->
+              <div class="mt-3 p-3 rounded-lg border border-slate-200 bg-slate-50/50 space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-semibold text-xs text-slate-700">✓ Galpón 01 (Lote 34)</span>
+                  <span class="text-[11px] text-emerald-700 font-medium">Normal</span>
+                </div>
+                <p class="text-xs text-slate-500">
+                  Postura en 92.8%, temperatura 23.5°C, consumo de agua nominal.
+                </p>
+              </div>
+            </div>
+
+            <button onclick="openIncidentSlideOver('Galpón 02')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors">
+              Inspeccionar Incidentes de la Semana
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- VISTA 2: ENCARGADO DE GALPÓN (Operativa y Táctica)                 -->
+      <!-- =================================================================== -->
+      <div id="viewGalponero" class="hidden space-y-6">
+        
+        <!-- Bloque Superior Destacado: Modo de Entrada Rápida ("Registro del Día") -->
+        <div class="bg-emerald-900 text-white p-5 rounded-2xl shadow-sm border border-emerald-800 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="space-y-1">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-amber-300">Tarea Operativa Pendiente</span>
+              <h2 class="text-lg font-bold text-white">Captura Matutina de Postura — Galpón 01</h2>
+              <p class="text-xs text-emerald-200">1,485 aves vivas censadas · Hy-Line Brown Semana 34</p>
+            </div>
+            <button onclick="openQuickEntrySlideOver()" class="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold rounded-xl text-sm shadow-md transition-all self-start sm:self-auto flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+              <span>+ Registrar Recolección Ahora</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tarjetas de Galpones (Card Grid Limpio) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <!-- Card Galpón 01 -->
+          <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-4 hover:border-emerald-300 transition-all">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">G1</span>
+                <div>
+                  <h3 class="font-bold text-sm text-slate-900">Galpón 01 — Postura</h3>
+                  <span class="text-xs text-slate-500">Lote Hy-Line 34 (1,485 aves)</span>
+                </div>
+              </div>
+              <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2.5 py-1 rounded-full">
+                92.8% Postura
+              </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 text-center py-1">
+              <div class="p-2.5 bg-slate-50 rounded-lg">
+                <span class="text-[11px] text-slate-500 block">Bajas Hoy</span>
+                <span class="text-base font-bold text-slate-800">1 ave</span>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg">
+                <span class="text-[11px] text-slate-500 block">Alimento Servido</span>
+                <span class="text-base font-bold text-slate-800">165 kg</span>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg">
+                <span class="text-[11px] text-slate-500 block">Clima / Agua</span>
+                <span class="text-base font-bold text-emerald-700">23.5°C ✓</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <button onclick="openQuickEntrySlideOver()" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold transition-colors">
+                Ver Detalle Galpón
+              </button>
+              <button onclick="openQuickEntrySlideOver()" class="py-2 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold transition-colors">
+                + Cargar Dato
+              </button>
+            </div>
+          </div>
+
+          <!-- Card Galpón 02 -->
+          <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-4 hover:border-amber-300 transition-all">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">G2</span>
+                <div>
+                  <h3 class="font-bold text-sm text-slate-900">Galpón 02 — Postura</h3>
+                  <span class="text-xs text-slate-500">Lote Hy-Line 28 (2,468 aves)</span>
+                </div>
+              </div>
+              <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2.5 py-1 rounded-full">
+                ⚠️ Revisar Consumo
+              </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 text-center py-1">
+              <div class="p-2.5 bg-slate-50 rounded-lg">
+                <span class="text-[11px] text-slate-500 block">Bajas Hoy</span>
+                <span class="text-base font-bold text-red-600">3 aves</span>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg">
+                <span class="text-[11px] text-slate-500 block">Alimento Servido</span>
+                <span class="text-base font-bold text-slate-800">275 kg</span>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg">
+                <span class="text-[11px] text-slate-500 block">Clima / Agua</span>
+                <span class="text-base font-bold text-amber-700">26.8°C !</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <button onclick="openIncidentSlideOver('Galpón 02')" class="flex-1 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg text-xs font-semibold transition-colors">
+                Atender Alerta Agua
+              </button>
+              <button onclick="openQuickEntrySlideOver()" class="py-2 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold transition-colors">
+                + Cargar Dato
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- VISTA 3: ENCARGADO DE ALMACÉN (Logística e Inventario)             -->
+      <!-- =================================================================== -->
+      <div id="viewAlmacenero" class="hidden space-y-6">
+
+        <!-- Indicadores de Nivel Tipo Barra de Progreso (Silos & Insumos Críticos) -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <h3 class="font-bold text-sm text-slate-900">Capacidad de Silos y Stock Crítico</h3>
+              <p class="text-xs text-slate-500">Control de reabastecimiento y prevención de quiebres</p>
+            </div>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> >30% Normal</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 15-30% Alerta</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> &lt;15% Crítico</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- Silo 1 -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>Silo 1 (Concentrado Postura)</span>
+                <span class="font-bold text-emerald-700">62% (3,720 kg)</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div class="bg-emerald-600 h-3 rounded-full transition-all" style="width: 62%"></div>
+              </div>
+              <span class="text-[11px] text-slate-500 block">Autonomía estimada: 8.5 días</span>
+            </div>
+
+            <!-- Silo 2 -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>Maples Vacíos (Empaque)</span>
+                <span class="font-bold text-amber-700">22% (480 unidades)</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div class="bg-amber-500 h-3 rounded-full transition-all" style="width: 22%"></div>
+              </div>
+              <span class="text-[11px] text-slate-500 block">Sugerencia: Pedir 1,000 maples el jueves</span>
+            </div>
+
+            <!-- Silo 3 -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs font-medium text-slate-700">
+                <span>Cajas de Cartón Estándar (12 maples)</span>
+                <span class="font-bold text-emerald-700">78% (180 cajas)</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div class="bg-emerald-600 h-3 rounded-full transition-all" style="width: 78%"></div>
+              </div>
+              <span class="text-[11px] text-slate-500 block">Suficiente para despacho dominical</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de Movimientos Recientes con Filtros Facetados (Chips) -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden space-y-3 p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-slate-100">
+            <div>
+              <h3 class="font-bold text-sm text-slate-900">Kardex y Movimientos Recientes</h3>
+              <p class="text-xs text-slate-500">Entradas de clasificación y salidas dominicales</p>
+            </div>
+            
+            <!-- Acciones Rápidas Primarias -->
+            <div class="flex items-center gap-2">
+              <button onclick="openQuickEntrySlideOver()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors">
+                <span>+ Registrar Entrada</span>
+              </button>
+              <button onclick="openQuickEntrySlideOver()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold transition-colors">
+                <span>+ Despacho a Galpón</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Chips de Filtros Facetados -->
+          <div class="flex items-center gap-1.5 text-xs overflow-x-auto pb-1">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase mr-1">Filtrar:</span>
+            <button class="px-3 py-1 bg-slate-900 text-white rounded-full font-medium">Todos</button>
+            <button class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-medium">Solo Alimento</button>
+            <button class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-medium">Huevos por Talla</button>
+            <button class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-medium">Empaque y Maples</button>
+            <button class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-medium">Fármacos / Vitaminas</button>
+          </div>
+
+          <!-- Tabla con microinteracciones -->
+          <div class="overflow-x-auto pt-2">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 font-semibold uppercase border-y border-slate-200">
+                <tr>
+                  <th class="py-2.5 px-3">Hora</th>
+                  <th class="py-2.5 px-3">Tipo</th>
+                  <th class="py-2.5 px-3">Ítem / Talla</th>
+                  <th class="py-2.5 px-3 text-right">Cantidad</th>
+                  <th class="py-2.5 px-3">Origen / Destino</th>
+                  <th class="py-2.5 px-3 text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                  <td class="py-2.5 px-3 font-mono text-slate-500">14:30</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">ENTRADA</span></td>
+                  <td class="py-2.5 px-3 font-semibold text-slate-900">Huevo Talla G (Grande)</td>
+                  <td class="py-2.5 px-3 text-right font-bold text-slate-800">+120 maples (10 cajas)</td>
+                  <td class="py-2.5 px-3 text-slate-500">Clasificación Postura Galpón 02</td>
+                  <td class="py-2.5 px-3 text-right"><button class="text-emerald-700 hover:underline font-semibold" onclick="openQuickEntrySlideOver()">Ver remito</button></td>
+                </tr>
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                  <td class="py-2.5 px-3 font-mono text-slate-500">11:15</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px]">DESPACHO</span></td>
+                  <td class="py-2.5 px-3 font-semibold text-slate-900">Alimento Concentrado Fase 2</td>
+                  <td class="py-2.5 px-3 text-right font-bold text-slate-800">-275 kg</td>
+                  <td class="py-2.5 px-3 text-slate-500">Entrega a Galpón 02</td>
+                  <td class="py-2.5 px-3 text-right"><button class="text-emerald-700 hover:underline font-semibold" onclick="openQuickEntrySlideOver()">Ver vale</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- PANEL LATERAL DESLIZANTE (SLIDE-OVER SHEET) — OCUPA EL 40%           -->
+    <!-- No pierde el contexto de fondo; permite ver detalle o capturar datos  -->
+    <!-- ===================================================================== -->
+    <div id="slideOverBackdrop" onclick="closeSlideOver()" class="hidden fixed inset-0 bg-slate-900/30 backdrop-blur-2xs z-40 transition-opacity"></div>
+    
+    <div id="slideOverPanel" class="slide-over-enter fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col justify-between overflow-hidden">
+      
+      <!-- Cabecera del Slide-over -->
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm" id="slideOverIcon">
+            ⚠️
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-900" id="slideOverTitle">Detalle de Incidente: Galpón 02</h3>
+            <p class="text-xs text-slate-500" id="slideOverSubtitle">Desviación en consumo de agua matutino</p>
+          </div>
+        </div>
+        <button onclick="closeSlideOver()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Contenido scrolleable del Slide-over -->
+      <div class="p-5 overflow-y-auto space-y-4 flex-1 text-xs text-slate-700">
+        
+        <div class="bg-amber-50 p-3.5 rounded-xl border border-amber-200 space-y-2">
+          <div class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+            <span>Diagnóstico Automático del Sistema:</span>
+          </div>
+          <p class="leading-relaxed text-slate-700">
+            A las 13:40 se detectó un descenso brusco de caudal en la <strong>Línea de Bebederos 03</strong> (Galpón 02). 
+            Temperatura interna alcanzó 26.8°C (3.3°C por encima del confort óptimo).
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <span class="font-bold text-slate-900 uppercase text-[11px] tracking-wider block">Parámetros Críticos Monitoreados:</span>
+          <div class="grid grid-cols-2 gap-2 text-center">
+            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+              <span class="text-[11px] text-slate-500 block">Caudal Agua</span>
+              <span class="font-bold text-red-600 text-sm">4.8 L/min (-22%)</span>
+            </div>
+            <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+              <span class="text-[11px] text-slate-500 block">Temperatura Galpón</span>
+              <span class="font-bold text-amber-700 text-sm">26.8 °C</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block font-bold text-slate-900 uppercase text-[11px] tracking-wider">
+            Acción Correctiva Tomada en Galpón:
+          </label>
+          <textarea rows="3" class="w-full p-2.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="Describe la revisión efectuada (ej: purgado de niple, reposición de electrobomba...)">Revisión de filtro de entrada realizada por Juan Pérez. Se purgó sedimentación en tubería secundaria.</textarea>
+        </div>
+
+        <div class="space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <span class="font-bold text-slate-800 text-[11px]">Trazabilidad de Auditoría:</span>
+          <div class="text-[11px] text-slate-500">Registrado por: <strong>Juan Pérez (Galponero)</strong></div>
+          <div class="text-[11px] text-slate-500">Validado por: <strong>Don Pedro (Admin)</strong></div>
+        </div>
+
+      </div>
+
+      <!-- Footer de acciones fijas del Slide-over -->
+      <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2 shrink-0">
+        <button onclick="closeSlideOver()" class="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+          Cerrar
+        </button>
+        <button onclick="resolveAlert()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors">
+          ✓ Marcar Resuelto y Guardar
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- COMMAND PALETTE MODAL (CTRL+K / CMD+K)                                    -->
+  <!-- ========================================================================= -->
+  <div id="commandPaletteModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-start justify-center pt-20 px-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden space-y-2">
+      <div class="p-3 border-b border-slate-100 flex items-center gap-2.5">
+        <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="text" id="commandInput" placeholder="Escribe para saltar a un galpón, lote o insumo..." class="w-full text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none" />
+        <kbd onclick="closeCommandPalette()" class="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] text-slate-500 font-mono cursor-pointer hover:bg-slate-200">ESC</kbd>
+      </div>
+      <div class="p-2 space-y-1 text-xs">
+        <div class="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase">Acceso Rápido</div>
+        <div onclick="selectCommand('Galpón 01')" class="p-2 rounded-lg hover:bg-slate-100 cursor-pointer flex items-center justify-between text-slate-800">
+          <span>Ir a <strong>Galpón 01 (Lote 34)</strong></span>
+          <span class="text-[11px] text-slate-400 font-mono">G1</span>
+        </div>
+        <div onclick="selectCommand('Galpón 02')" class="p-2 rounded-lg hover:bg-slate-100 cursor-pointer flex items-center justify-between text-slate-800">
+          <span>Ir a <strong>Galpón 02 (Alerta activa)</strong></span>
+          <span class="text-[11px] text-amber-600 font-bold">⚠️ G2</span>
+        </div>
+        <div onclick="selectCommand('Almacén Tallas')" class="p-2 rounded-lg hover:bg-slate-100 cursor-pointer flex items-center justify-between text-slate-800">
+          <span>Ver <strong>Inventario de Tallas de Huevo</strong></span>
+          <span class="text-[11px] text-slate-400 font-mono">STOCK</span>
+        </div>
+        <div onclick="selectCommand('Nueva Remisión')" class="p-2 rounded-lg hover:bg-slate-100 cursor-pointer flex items-center justify-between text-slate-800">
+          <span>Emitir <strong>Nota de Remisión Dominical</strong></span>
+          <span class="text-[11px] text-emerald-700 font-bold">+VENTA</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT: LÓGICA INTERACTIVA DEL MOCKUP                                -->
+  <!-- ========================================================================= -->
+  <script>
+    let currentRole = 'admin';
+    let sidebarCollapsed = false;
+
+    // Conmutar entre los 3 Roles
+    function switchRole(role) {
+      currentRole = role;
+      
+      // Actualizar botones
+      document.getElementById('roleBtnAdmin').className = role === 'admin' 
+        ? 'px-2.5 py-1 rounded bg-emerald-700 text-white font-medium text-xs shadow-xs' 
+        : 'px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-300 font-medium text-xs hover:bg-emerald-800';
+      document.getElementById('roleBtnGalponero').className = role === 'galponero' 
+        ? 'px-2.5 py-1 rounded bg-emerald-700 text-white font-medium text-xs shadow-xs' 
+        : 'px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-300 font-medium text-xs hover:bg-emerald-800';
+      document.getElementById('roleBtnAlmacenero').className = role === 'almacenero' 
+        ? 'px-2.5 py-1 rounded bg-emerald-700 text-white font-medium text-xs shadow-xs' 
+        : 'px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-300 font-medium text-xs hover:bg-emerald-800';
+
+      // Mostrar vista adecuada
+      document.getElementById('viewAdmin').classList.toggle('hidden', role !== 'admin');
+      document.getElementById('viewGalponero').classList.toggle('hidden', role !== 'galponero');
+      document.getElementById('viewAlmacenero').classList.toggle('hidden', role !== 'almacenero');
+
+      // Filtrado por Rol en Sidebar
+      document.getElementById('sectionFinanzas').classList.toggle('hidden', role !== 'admin');
+      document.getElementById('menuItemBI').classList.toggle('hidden', role !== 'admin');
+
+      // Actualizar avatar y etiquetas
+      if (role === 'admin') {
+        document.getElementById('userAvatar').innerText = 'A';
+        document.getElementById('userNameLabel').innerText = 'Don Pedro';
+        document.getElementById('userRoleLabel').innerText = 'Administrador General';
+      } else if (role === 'galponero') {
+        document.getElementById('userAvatar').innerText = 'G';
+        document.getElementById('userNameLabel').innerText = 'Juan Pérez';
+        document.getElementById('userRoleLabel').innerText = 'Encargado de Galpón';
+      } else {
+        document.getElementById('userAvatar').innerText = 'L';
+        document.getElementById('userNameLabel').innerText = 'Carlos Gómez';
+        document.getElementById('userRoleLabel').innerText = 'Encargado de Almacén';
+      }
+    }
+
+    // Alternar Colapso del Sidebar
+    function toggleSidebar() {
+      const sidebar = document.getElementById('mainSidebar');
+      sidebarCollapsed = !sidebarCollapsed;
+      if (sidebarCollapsed) {
+        sidebar.classList.remove('w-60');
+        sidebar.classList.add('w-16');
+        document.querySelectorAll('.sidebar-label, .sidebar-heading').forEach(el => el.classList.add('hidden'));
+      } else {
+        sidebar.classList.remove('w-16');
+        sidebar.classList.add('w-60');
+        document.querySelectorAll('.sidebar-label, .sidebar-heading').forEach(el => el.classList.remove('hidden'));
+      }
+    }
+
+    // Selector Contexto Global Dropdown
+    function toggleContextDropdown() {
+      const dd = document.getElementById('contextDropdown');
+      dd.classList.toggle('hidden');
+    }
+
+    function setContext(fullLabel, shortName) {
+      document.getElementById('currentContextLabel').innerText = fullLabel;
+      document.getElementById('breadcrumbCurrent').innerText = shortName;
+      document.getElementById('contextDropdown').classList.add('hidden');
+    }
+
+    // Slide-Over Sheet (Panel Deslizante 40%)
+    function openIncidentSlideOver(galpon) {
+      document.getElementById('slideOverTitle').innerText = 'Incidente Activo: ' + galpon;
+      document.getElementById('slideOverBackdrop').classList.remove('hidden');
+      const panel = document.getElementById('slideOverPanel');
+      panel.classList.remove('slide-over-enter', 'slide-over-exit-active');
+      panel.classList.add('slide-over-enter-active');
+    }
+
+    function openQuickEntrySlideOver() {
+      document.getElementById('slideOverIcon').innerText = '📝';
+      document.getElementById('slideOverTitle').innerText = 'Registro Rápido de Campo';
+      document.getElementById('slideOverSubtitle').innerText = 'Captura de huevos recolectados y kg de alimento';
+      document.getElementById('slideOverBackdrop').classList.remove('hidden');
+      const panel = document.getElementById('slideOverPanel');
+      panel.classList.remove('slide-over-enter', 'slide-over-exit-active');
+      panel.classList.add('slide-over-enter-active');
+    }
+
+    function closeSlideOver() {
+      const panel = document.getElementById('slideOverPanel');
+      panel.classList.add('slide-over-exit-active');
+      setTimeout(() => {
+        document.getElementById('slideOverBackdrop').classList.add('hidden');
+        panel.classList.add('slide-over-enter');
+      }, 200);
+    }
+
+    function resolveAlert() {
+      alert('Incidente marcado como resuelto. La bitácora ha sido actualizada.');
+      closeSlideOver();
+    }
+
+    // Command Palette (Ctrl+K / Cmd+K)
+    function openCommandPalette() {
+      document.getElementById('commandPaletteModal').classList.remove('hidden');
+      document.getElementById('commandInput').focus();
+    }
+
+    function closeCommandPalette() {
+      document.getElementById('commandPaletteModal').classList.add('hidden');
+    }
+
+    function selectCommand(cmd) {
+      closeCommandPalette();
+      alert('Navegando rápidamente a: ' + cmd);
+    }
+
+    // Listener para Ctrl+K / Cmd+K y Escape
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        openCommandPalette();
+      }
+      if (e.key === 'Escape') {
+        closeCommandPalette();
+        closeSlideOver();
+        document.getElementById('contextDropdown').classList.add('hidden');
+      }
+    });
+
+    // Demo de Skeletons Elegantes de Carga
+    function toggleSkeletonDemo() {
+      alert('Demostración de Skeletons: En lugar de un spinner genérico, el sistema cargará sombras parpadeantes con la geometría exacta de las tarjetas.');
+    }
+  </script>
+
+</body>
+</html>
