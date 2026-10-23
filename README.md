@@ -10,7 +10,7 @@
 
 Sistema integral de gestión de recursos empresariales (**ERP**) y módulo de analítica predictiva/inteligencia de negocios (**BI**) diseñado específicamente para la operación agroindustrial de postura comercial en **"Alta La Estancia"**.
 
-> **Guía para los usuarios:** [Manual por roles](MANUAL_DE_USO.md) · [PDF para descargar](docs/GUIA_USO_POR_ROL.pdf).
+> **Guía para los usuarios:** [PDF para descargar](docs/GUIA_USO_POR_ROL.pdf).
 
 > La operación autenticada, gestión de cuentas reales, raciones estimadas, reglas Hy-Line, migraciones y validaciones de esta rama están en [Operación y puesta en marcha](docs/OPERACION.md).
 
@@ -64,22 +64,9 @@ erp-avicola/
 │
 └── packages/
     ├── db/                  # Esquemas de base de datos Drizzle ORM, migraciones y seed
-    ├── shared/              # Lógica de dominio pura, fórmulas (% postura, FCR, márgenes), tipos y esquemas Zod
+    ├── shared/              # Lógica de dominio pura, tipos y esquemas Zod
     └── tsconfig/            # Configuraciones base de TypeScript compartidas
 ```
-
----
-
-## 📐 Fórmulas de Negocio Implementadas
-
-- **Porcentaje de Postura Diaria:**
-  $$\%\text{ Postura} = \left(\frac{\text{Huevos Recolectados}}{\text{Aves Vivas Alojadas}}\right) \times 100$$
-- **Índice de Conversión Alimenticia (FCR):**
-  $$\text{FCR} = \frac{\text{Kg Alimento Consumido}}{\text{Maples Producidos}}$$
-- **Asignación Proporcional de Costo de Alimento por Talla:**
-  $$\text{Costo Alimento}_{\text{Talla}} = \frac{\text{Costo Total Alimento} \times \text{Unidades}_{\text{Talla}}}{\text{Total Unidades Producidas}}$$
-- **Margen Operativo por Talla:**
-  $$\text{Margen}_{\text{Talla}} = \text{Ingresos}_{\text{Talla}} - \text{Costo Proporcional}_{\text{Talla}}$$
 
 ---
 
