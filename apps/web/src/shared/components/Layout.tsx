@@ -124,13 +124,15 @@ export function Layout() {
           >
             <Menu size={20} />
           </button>
-          <div className="rounded-xl bg-emerald-900 text-amber-200 p-2 font-bold">
-            AE
-          </div>
+          <img
+            src="/pwa-192x192.png"
+            alt="Agro Insight"
+            className="w-9 h-9 rounded-xl object-contain shadow-sm"
+          />
           <div>
-            <p className="font-bold text-sm">Alta La Estancia</p>
+            <p className="font-bold text-sm">Agro Insight</p>
             <p className="text-xs text-slate-500">
-              Gestión avícola · Bolivianos (Bs)
+              Alta La Estancia · Bolivianos (Bs)
             </p>
           </div>
         </div>

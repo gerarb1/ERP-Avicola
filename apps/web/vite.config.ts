@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       manifest: {
         id: '/',
-        name: 'ERP Avícola - Alta La Estancia',
-        short_name: 'ERPAvícola',
+        name: 'Agro Insight',
+        short_name: 'Agro Insight',
         description: 'Gestión Integral de Granjas Avícolas y Analítica de Postura',
         start_url: '/',
         scope: '/',

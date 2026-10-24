@@ -44,14 +44,16 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2">
-        <div className="w-14 h-14 rounded-2xl bg-emerald-800 text-amber-300 mx-auto flex items-center justify-center font-bold text-xl shadow-sm border border-emerald-900/10">
-          AE
-        </div>
+        <img
+          src="/pwa-192x192.png"
+          alt="Agro Insight"
+          className="w-16 h-16 rounded-2xl mx-auto shadow-md object-contain"
+        />
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Alta La Estancia
+          Agro Insight
         </h1>
         <p className="text-xs text-slate-500">
-          Sistema de Gestión y Analítica Avícola
+          Alta La Estancia · Gestión y Analítica Avícola
         </p>
       </div>
 
