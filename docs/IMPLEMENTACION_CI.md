@@ -31,9 +31,24 @@ Fecha de trabajo: 18 de noviembre de 2026. Base del cambio:
   `uv_interface_addresses` al iniciar Wrangler. La preparación de la base y las semillas
   sí se ejecutaron; esto no equivale a aprobar los escenarios de integración.
 
-La ejecución de GitHub Actions debe consultarse para determinar el estado de la
-integración, la interfaz y la restauración en el ejecutor remoto. No se atribuyen aquí
-resultados de producción ni aceptación de usuarios.
+## Verificación en GitHub Actions
+
+La [ejecución 44385767586](https://github.com/gerarb1/ERP-Avicola/actions/runs/44385767586)
+finalizó satisfactoriamente el 18 de noviembre de 2026 sobre el commit
+`8e7584392a75420412f63254d711e61b3a305bf5`, en Ubuntu 24.04 con PostgreSQL 16.
+
+- 10 pruebas unitarias aprobadas, 0 fallidas.
+- 15 pruebas de API aprobadas, 0 fallidas.
+- Interfaz: aprobadas las comprobaciones de los tres roles y el flujo de creación
+  de cuenta, cambio obligatorio de contraseña y recuperación.
+- Restauración: coincidencia del contenido de 23 tablas públicas y 127 filas
+  entre la base temporal original y la restaurada.
+- Tipos, construcción web y empaquetado de API: aprobados.
+- Evidencias conservadas en el artefacto `evidencia-44385767586-1` de esa ejecución
+  durante 30 días. Descargarlo si se requiere conservarlo como anexo académico.
+
+Estos resultados corresponden a datos de prueba aislados. No equivalen a una
+restauración del respaldo productivo ni a la aceptación del sistema por los usuarios.
 
 ## Activación pendiente
 
