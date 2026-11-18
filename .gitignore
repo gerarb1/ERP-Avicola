@@ -10,3 +10,8 @@ dist
 .DS_Store
 coverage
 *.log
+reports/
+*.dump
+*.tsbuildinfo
+apps/web/vite.config.js
+apps/web/vite.config.d.ts

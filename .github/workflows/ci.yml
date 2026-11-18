@@ -1,0 +1,102 @@
+name: CI ERP
+
+on:
+  pull_request:
+  push:
+    branches: [main, codex/ci-pruebas-mantenimiento]
+  workflow_dispatch:
+  workflow_call:
+  schedule:
+    - cron: '0 10 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verificar ERP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+      ERP_TEST_DB_PASSWORD: postgres
+      VITE_API_URL: http://127.0.0.1:8790
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Preparar evidencias
+        shell: bash
+        run: |
+          mkdir -p reports
+          {
+            printf 'commit=%s\nrun=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID"
+            date -u +'%Y-%m-%dT%H:%M:%SZ'
+            node --version
+            pnpm --version
+          } > reports/environment.txt
+      - name: Instalar dependencias bloqueadas
+        run: pnpm install --frozen-lockfile
+      - name: Instalar herramientas de pruebas
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+          pnpm exec playwright install --with-deps chromium
+      - name: Comprobar tipos
+        shell: bash
+        run: pnpm type-check 2>&1 | tee reports/types.log
+      - name: Pruebas unitarias
+        shell: bash
+        run: pnpm test:unit 2>&1 | tee reports/unit.log
+      - name: Pruebas de interfaz, API y restauración
+        shell: bash
+        run: pnpm test:e2e 2>&1 | tee reports/integration-ui-restore.log
+      - name: Construir web
+        shell: bash
+        run: pnpm build:web 2>&1 | tee reports/build-web.log
+      - name: Empaquetar API sin publicar
+        shell: bash
+        run: pnpm build:api 2>&1 | tee reports/build-api.log
+      - name: Conservar evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencia-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Resumen de ejecución
+        if: always()
+        shell: bash
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          {
+            echo '## Verificación del ERP'
+            printf 'Commit: `%s`\n\n' "$GITHUB_SHA"
+            printf 'Resultado: **%s**\n\n' "$RESULT"
+            echo 'Los registros están en el artefacto evidencia de esta ejecución.'
+            echo 'La base utilizada fue temporal; esta ejecución no publica ni verifica producción.'
+          } >> "$GITHUB_STEP_SUMMARY"
