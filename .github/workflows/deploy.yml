@@ -1,0 +1,91 @@
+name: Publicar ERP
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: erp-production
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main' && vars.ERP_DEPLOY_ENABLED == 'true'
+    uses: ./.github/workflows/ci.yml
+  deploy:
+    name: Publicar versión comprobada
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+      ERP_WEB_URL: ${{ vars.ERP_WEB_URL }}
+      ERP_API_URL: ${{ vars.ERP_API_URL }}
+      VITE_API_URL: ${{ vars.ERP_API_URL }}
+      ERP_SMOKE_TOKEN: ${{ secrets.ERP_SMOKE_TOKEN }}
+      ERP_REQUIRE_DATABASE_CHECK: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Verificar configuración y commit
+        shell: bash
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CF_TOKEN" && test -n "$CF_ACCOUNT" && test -n "$ERP_SMOKE_TOKEN"
+          test -n "$ERP_WEB_URL" && test -n "$ERP_API_URL"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+      - run: pnpm install --frozen-lockfile
+      - name: Verificar servicio y acceso a datos antes de publicar
+        run: node scripts/smoke.mjs
+      - name: Construir para producción
+        run: pnpm build:web
+      - name: Preparar evidencia de publicación
+        shell: bash
+        run: |
+          mkdir -p reports
+          printf 'commit=%s\nrun=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > reports/deployment.txt
+      - name: Publicar API y web del mismo commit
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+          pnpm --filter @erp-avicola/api exec wrangler deploy --var APP_ENV:production 2>&1 | tee reports/deploy-api.log
+          pnpm --filter @erp-avicola/web exec wrangler deploy 2>&1 | tee reports/deploy-web.log
+      - name: Comprobar disponibilidad y consulta a datos
+        run: node scripts/smoke.mjs
+      - name: Conservar identificadores de versiones
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: despliegue-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/
+          retention-days: 30
+          if-no-files-found: ignore
+      - name: Registrar resultado
+        if: always()
+        shell: bash
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          {
+            echo '## Publicación del ERP'
+            printf 'Commit: `%s`\n\nResultado: **%s**\n' "$GITHUB_SHA" "$RESULT"
+            echo 'Registrar los identificadores de ambas versiones mostrados por Wrangler.'
+            echo 'No se aplicaron migraciones ni se restauró la base productiva.'
+            echo 'Ante un fallo parcial, seguir docs/CI_DESPLIEGUE.md; no restaurar datos automáticamente.'
+          } >> "$GITHUB_STEP_SUMMARY"

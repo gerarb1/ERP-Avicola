@@ -3,7 +3,8 @@ const fs = require("node:fs");
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
 (async () => {
   const browser = await chromium.launch({
-    executablePath: "/usr/bin/chromium",
+    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}),
     headless: true,
     args: ["--no-sandbox"],
   });
@@ -13,11 +14,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     .split("\n")
     .map((l) => l.split("\t"));
   const errors = [];
+  // Bound failed navigation/assertions so CI cannot hang indefinitely.
   async function login(email, password) {
     const context = await browser.newContext({
         viewport: { width: 1360, height: 900 },
       }),
       page = await context.newPage();
+    page.setDefaultTimeout(15000);
+    page.setDefaultNavigationTimeout(30000);
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("http://127.0.0.1:5174/login");
     await page.getByLabel("Correo Electrónico").fill(email);

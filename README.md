@@ -130,3 +130,10 @@ pnpm run deploy
 ## 📄 Licencia y Propiedad
 
 Desarrollado exclusivamente para **Alta La Estancia Agroindustrial**. Todos los derechos reservados.
+
+## Integración continua y publicación
+
+La configuración de CI, las pruebas con PostgreSQL temporal, el ensayo de restauración
+y la publicación manual protegida se describen en [docs/CI_DESPLIEGUE.md](docs/CI_DESPLIEGUE.md).
+La publicación requiere configurar el entorno y habilitarla explícitamente; agregar el
+workflow no modifica la configuración de Cloudflare ni activa respaldos de producción.

@@ -24,7 +24,7 @@ def request(path, role=None, data=None, expected=200, key=None, headers=None):
     if data is not None: h['X-Idempotency-Key']=key or str(uuid.uuid4())
     req=urllib.request.Request(BASE+path, headers=h, data=json.dumps(data).encode() if data is not None else None)
     try:
-        res=urllib.request.urlopen(req); status=res.status; body=json.load(res)
+        res=urllib.request.urlopen(req, timeout=30); status=res.status; body=json.load(res)
     except urllib.error.HTTPError as e:
         status=e.code; body=json.load(e)
     if status!=expected: raise AssertionError(f'{path}: expected {expected}, got {status}: {body}')

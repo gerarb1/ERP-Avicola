@@ -7,14 +7,20 @@
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "db:generate": "turbo db:generate",
-    "db:migrate": "turbo db:migrate"
+    "db:migrate": "turbo db:migrate",
+    "test:unit": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test:integration": "bash tests/run-api.sh",
+    "test:e2e": "ERP_BROWSER_TESTS=1 bash tests/run-api.sh",
+    "build:api": "pnpm --filter @erp-avicola/api exec wrangler deploy --dry-run",
+    "build:web": "pnpm --filter @erp-avicola/web build"
   },
   "devDependencies": {
+    "playwright": "1.56.1",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0"
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.0.0"
   }
 }
